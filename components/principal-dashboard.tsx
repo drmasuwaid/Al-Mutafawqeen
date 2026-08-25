@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Building2, GraduationCap, Loader2, LogOut, Pencil, Settings, Trash2, UserPlus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Building2, GraduationCap, Loader2, LogOut, Pencil, Search, Settings, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { AccountDialog } from "@/components/account-dialog";
 import { TeacherFormDialog } from "@/components/add-teacher-dialog";
 import { AppHeader } from "@/components/app-header";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { teacherMatchesQuery } from "@/lib/arabic";
 import { compareArabicNames, groupAssignmentsByGrade } from "@/lib/teachers";
 import type { TeacherSummary } from "@/lib/types";
 
@@ -20,6 +21,7 @@ export function PrincipalDashboard() {
   const [editing, setEditing] = useState<TeacherSummary | null>(null);
   const [deleting, setDeleting] = useState<TeacherSummary | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [query, setQuery] = useState("");
 
   const loadTeachers = useCallback(async () => {
     setLoading(true);
@@ -63,6 +65,11 @@ export function PrincipalDashboard() {
       setDeleteBusy(false);
     }
   }
+
+  const visibleTeachers = useMemo(
+    () => teachers.filter((teacher) => teacherMatchesQuery(teacher, query)),
+    [teachers, query]
+  );
 
   if (!profile) return null;
 
@@ -116,6 +123,17 @@ export function PrincipalDashboard() {
           <p className="mt-1 text-sm text-slate-400">
             الأسماء مرتبة أبجدياً. يمكنك تعديل بيانات المدرس أو حذف حسابه من هنا.
           </p>
+          <label className="relative mt-4 block">
+            <Search className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-slate-400" />
+            <input
+              className="field-input w-full pr-10"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="ابحث بالاسم أو اسم المستخدم..."
+              aria-label="بحث في الكادر التدريسي"
+              autoComplete="off"
+            />
+          </label>
 
           {loading ? (
             <div className="flex justify-center py-16">
@@ -125,9 +143,13 @@ export function PrincipalDashboard() {
             <p className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-400">
               لا يوجد مدرسون بعد. اضغط «إضافة مدرس جديد» لإنشاء أول حساب.
             </p>
+          ) : visibleTeachers.length === 0 ? (
+            <p className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-400">
+              لا يوجد مدرس يطابق «{query.trim()}». جرّب الاسم دون همزات أو تاء مربوطة.
+            </p>
           ) : (
             <div className="mt-4 grid gap-3">
-              {teachers.map((teacher) => {
+              {visibleTeachers.map((teacher) => {
                 const groups = groupAssignmentsByGrade(teacher.subjectsGrades);
                 return (
                   <article key={teacher.id} className="soft-card p-4">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,25 +31,16 @@ export function AssignForm({
       ? subjects
       : subjects.filter((item) => profile.subjectIds?.includes(item.id));
 
-  const defaultDue = useMemo(() => {
-    const date = new Date();
-    date.setDate(date.getDate() + 1);
-    date.setHours(16, 0, 0, 0);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-  }, []);
-
   const [title, setTitle] = useState("");
   const [titleAr, setTitleAr] = useState("");
   const [details, setDetails] = useState("");
   const [detailsAr, setDetailsAr] = useState("");
   const [classId, setClassId] = useState(allowedClasses[0]?.id ?? "");
   const [subjectId, setSubjectId] = useState(allowedSubjects[0]?.id ?? "");
-  const [dueAt, setDueAt] = useState(defaultDue);
   const [busy, setBusy] = useState(false);
 
   async function publish() {
-    if (!title.trim() || !titleAr.trim() || !classId || !subjectId || !dueAt) {
+    if (!title.trim() || !titleAr.trim() || !classId || !subjectId) {
       toast.error(t.required);
       return;
     }
@@ -65,7 +56,6 @@ export function AssignForm({
           detailsAr,
           classId,
           subjectId,
-          dueAt,
         }),
       });
       const data = (await res.json()) as { error?: string };
@@ -128,9 +118,6 @@ export function AssignForm({
           </select>
         </Field>
       </div>
-      <Field label={t.dueAt}>
-        <Input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} />
-      </Field>
       <Field label={t.detailsAr}>
         <Textarea value={detailsAr} onChange={(event) => setDetailsAr(event.target.value)} dir="rtl" />
       </Field>

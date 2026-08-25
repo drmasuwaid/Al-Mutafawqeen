@@ -1,9 +1,9 @@
 "use client";
 
-import { Calendar, Clock, Pencil, Trash2 } from "lucide-react";
+import { Clock, Pencil, Trash2 } from "lucide-react";
 import { AttachmentGallery } from "@/components/attachment-gallery";
 import { classById } from "@/lib/catalog";
-import { formatDueDay, formatPublishedAt, isFresh } from "@/lib/dates";
+import { formatPublishedAt, isFresh } from "@/lib/dates";
 import type { Homework, Subject } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -94,17 +94,6 @@ export function HomeworkItem({
               تاريخ النشر:{" "}
               <span dir="ltr" className="inline-block tabular-nums">
                 {publishedAt}
-              </span>
-            </span>
-          </p>
-        ) : null}
-        {item.dueAt ? (
-          <p className="flex items-center gap-2 text-sm text-amber-700">
-            <Calendar className="size-4 shrink-0 text-amber-500" />
-            <span>
-              موعد التسليم:{" "}
-              <span dir="ltr" className="inline-block tabular-nums">
-                {formatDueDay(item.dueAt)}
               </span>
             </span>
           </p>

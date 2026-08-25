@@ -54,7 +54,6 @@ export function PublishDialog({
   const [sectionIds, setSectionIds] = useState<string[]>([]);
   const [titleAr, setTitleAr] = useState("");
   const [detailsAr, setDetailsAr] = useState("");
-  const [dueAt, setDueAt] = useState("");
   const [existingFiles, setExistingFiles] = useState<Attachment[]>([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
@@ -89,7 +88,6 @@ export function PublishDialog({
     setSectionIds(homework ? homework.classIds.map((id) => parseClassId(id).sectionId) : []);
     setTitleAr(homework?.titleAr ?? "");
     setDetailsAr(homework?.detailsAr ?? "");
-    setDueAt(homework?.dueAt ? homework.dueAt.slice(0, 10) : "");
     setExistingFiles(homework?.attachments ?? []);
     setPendingFiles([]);
   }, [open, homework, grades]);
@@ -122,7 +120,6 @@ export function PublishDialog({
         details: detailsAr.trim(),
         subjectId,
         classIds,
-        dueAt: dueAt || null,
         attachments: existingFiles,
       };
       const form = new FormData();
@@ -247,11 +244,6 @@ export function PublishDialog({
             value={detailsAr}
             onChange={(event) => setDetailsAr(event.target.value)}
           />
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-600">آخر موعد للتسليم (اختياري):</span>
-          <input type="date" className="field-input w-full" value={dueAt} onChange={(event) => setDueAt(event.target.value)} />
         </label>
 
         <div className="space-y-2">

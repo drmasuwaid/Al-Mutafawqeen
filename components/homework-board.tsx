@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocale } from "@/hooks/use-locale";
-import { dueBucket, formatDue, isFresh } from "@/lib/dates";
+import { dueBucket, isFresh } from "@/lib/dates";
 import { isHomeworkOwner } from "@/lib/teachers";
 import type { DueBucket, Homework, Profile, SchoolClass, Subject } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -152,12 +152,6 @@ function HomeworkCard({
           </CardHeader>
           <CardContent className="space-y-3">
             {details ? <p className="text-sm leading-6 text-muted-foreground">{details}</p> : null}
-                  {item.dueAt ? (
-                    <p className="text-sm text-teal-950">
-                      <span className="text-muted-foreground">{t.due}: </span>
-                      {formatDue(item.dueAt, locale)}
-                    </p>
-                  ) : null}
             <p className="text-xs text-muted-foreground">
               {t.assignedBy} {teacher}
               {profile.role !== "student"

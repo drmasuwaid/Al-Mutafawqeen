@@ -80,7 +80,7 @@ export function StudentBoard({
               <div className="grid gap-4">
                 {snapshot.homework.map((item) => (
                   <HomeworkItem
-                    key={item.id}
+                    key={`${item.id}-${item.updatedAt}`}
                     item={item}
                     subject={snapshot.subjects.find((row) => row.id === item.subjectId)}
                   />

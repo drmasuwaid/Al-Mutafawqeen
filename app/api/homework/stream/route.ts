@@ -22,7 +22,14 @@ export async function GET(request: Request) {
       };
 
       unsubscribe = subscribeLiveSnapshot(user, {
-        onData: (snapshot) => send("snapshot", snapshot),
+        onData: (snapshot, meta) => {
+          send("snapshot", snapshot);
+          const kinds = meta?.kinds?.length ? meta.kinds : ["modified"];
+          send("change", { kinds, serverTime: snapshot.serverTime });
+          if (kinds.includes("added")) send("insert", { serverTime: snapshot.serverTime });
+          if (kinds.includes("modified")) send("update", { serverTime: snapshot.serverTime });
+          if (kinds.includes("removed")) send("delete", { serverTime: snapshot.serverTime });
+        },
         onError: (error) => send("sync-error", { message: error.message }),
       });
 

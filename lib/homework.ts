@@ -213,22 +213,30 @@ export async function loadLiveSnapshot(user: Profile): Promise<LiveSnapshot> {
   };
 }
 
+export type LiveChangeKind = "added" | "modified" | "removed";
+
 export function subscribeLiveSnapshot(
   user: Profile,
   handlers: {
-    onData: (snapshot: LiveSnapshot) => void;
+    onData: (snapshot: LiveSnapshot, meta?: { kinds: LiveChangeKind[] }) => void;
     onError: (error: Error) => void;
   }
 ) {
   const db = adminDb();
+  let seq = 0;
   return db.collection("homework").onSnapshot(
-    async () => {
+    async (snapshot) => {
+      const kinds = [
+        ...new Set(snapshot.docChanges().map((change) => change.type)),
+      ];
+      const my = ++seq;
       try {
-        handlers.onData(await loadLiveSnapshot(user));
+        const data = await loadLiveSnapshot(user);
+        if (my !== seq) return;
+        handlers.onData(data, { kinds });
       } catch (error) {
-        handlers.onError(
-          error instanceof Error ? error : new Error("Live sync failed")
-        );
+        if (my !== seq) return;
+        handlers.onError(error instanceof Error ? error : new Error("Live sync failed"));
       }
     },
     (error) => handlers.onError(error)
