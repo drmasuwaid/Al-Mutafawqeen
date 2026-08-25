@@ -47,7 +47,7 @@ export function AccountDialog({
       if (!res.ok || !data.profile) throw new Error(data.error);
       onSaved(data.profile);
       onOpenChange(false);
-      toast.success("تم تحديث الحساب المرتبط بمعرّفك الثابت.");
+      toast.success("تم تحديث معلومات الحساب.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر الحفظ");
     } finally {
@@ -78,11 +78,8 @@ export function AccountDialog({
         </button>
         <DialogTitle className="text-xl font-extrabold">تغيير معلومات الحساب</DialogTitle>
         <DialogDescription>
-          التعديل يحدّث سجل المدرس ذي المعرّف الثابت فقط، دون إنشاء حساب جديد.
+          أدخل كلمة المرور الحالية للتأكيد، ثم حدّث الاسم أو اسم المستخدم أو كلمة المرور.
         </DialogDescription>
-        <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-          المعرّف الثابت: {profile.teacherId || profile.uid}
-        </p>
         <label className="block space-y-2">
           <span className="text-sm font-medium text-slate-600">الاسم:</span>
           <input className="field-input w-full" value={displayNameAr} onChange={(event) => setDisplayNameAr(event.target.value)} />

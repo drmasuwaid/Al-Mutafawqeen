@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, UserPlus, X } from "lucide-react";
+import { Loader2, Pencil, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { MultiAddPicker, type PickerOption } from "@/components/multi-add-picker";
 import {
@@ -11,17 +11,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { GRADES, SECTIONS } from "@/lib/catalog";
+import { pickerSelectionsFromAssignments } from "@/lib/teachers";
 import type { Subject, TeacherSummary } from "@/lib/types";
 
-export function AddTeacherDialog({
+export function TeacherFormDialog({
   open,
   onOpenChange,
-  onCreated,
+  teacher,
+  onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (teacher: TeacherSummary) => void;
+  teacher?: TeacherSummary | null;
+  onSaved: (teacher: TeacherSummary) => void;
 }) {
+  const isEdit = Boolean(teacher);
   const [nameAr, setNameAr] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -41,24 +45,40 @@ export function AddTeacherDialog({
       setSubjects([]);
       return;
     }
+    if (teacher) {
+      const selected = pickerSelectionsFromAssignments(teacher.subjectsGrades);
+      setNameAr(teacher.displayNameAr);
+      setUsername(teacher.username);
+      setPassword("");
+      setGrades(selected.grades);
+      setSections(selected.sections);
+      setSubjects(selected.subjects);
+    } else {
+      setNameAr("");
+      setUsername("");
+      setPassword("");
+      setGrades([]);
+      setSections([]);
+      setSubjects([]);
+    }
     fetch("/api/subjects")
       .then(async (res) => {
         const data = (await res.json()) as { subjects?: Subject[] };
         setCatalog(data.subjects ?? []);
       })
       .catch(() => setCatalog([]));
-  }, [open]);
+  }, [open, teacher]);
 
   async function save() {
     setBusy(true);
     try {
-      const res = await fetch("/api/teachers", {
-        method: "POST",
+      const res = await fetch(isEdit ? `/api/teachers/${teacher!.id}` : "/api/teachers", {
+        method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           displayNameAr: nameAr.trim(),
           username: username.trim(),
-          password,
+          password: password.trim() || undefined,
           gradeIds: grades.map((item) => item.id),
           sectionIds: sections.map((item) => item.id),
           subjectIds: subjects.map((item) => item.id),
@@ -66,8 +86,8 @@ export function AddTeacherDialog({
       });
       const data = (await res.json()) as { error?: string; teacher?: TeacherSummary };
       if (!res.ok || !data.teacher) throw new Error(data.error || "تعذر حفظ المدرس");
-      toast.success("تم إضافة المدرس وحفظ بياناته.");
-      onCreated(data.teacher);
+      toast.success(isEdit ? "تم تحديث بيانات المدرس." : "تم إضافة المدرس وحفظ بياناته.");
+      onSaved(data.teacher);
       onOpenChange(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر حفظ المدرس");
@@ -88,12 +108,16 @@ export function AddTeacherDialog({
         </button>
         <div className="flex items-start gap-3 pt-1">
           <span className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
-            <UserPlus className="size-5" />
+            {isEdit ? <Pencil className="size-5" /> : <UserPlus className="size-5" />}
           </span>
           <div>
-            <DialogTitle className="text-xl font-extrabold">إضافة مدرس جديد</DialogTitle>
+            <DialogTitle className="text-xl font-extrabold">
+              {isEdit ? "تعديل بيانات المدرس" : "إضافة مدرس جديد"}
+            </DialogTitle>
             <DialogDescription className="mt-1 text-sm text-slate-400">
-              حدّد الاسم والمراحل والشعب والمواد ثم اسم المستخدم وكلمة المرور الأولية.
+              {isEdit
+                ? "حدّث الاسم واسم المستخدم والمراحل والشعب والمواد. اترك كلمة المرور فارغة للإبقاء عليها."
+                : "حدّد الاسم والمراحل والشعب والمواد ثم اسم المستخدم وكلمة المرور الأولية."}
             </DialogDescription>
           </div>
         </div>
@@ -141,11 +165,13 @@ export function AddTeacherDialog({
           />
         </label>
         <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-600">كلمة المرور الأولية</span>
+          <span className="text-sm font-medium text-slate-600">
+            {isEdit ? "كلمة المرور الجديدة (اختياري)" : "كلمة المرور الأولية"}
+          </span>
           <input
             className="field-input w-full"
             type="password"
-            placeholder="6 أحرف على الأقل"
+            placeholder={isEdit ? "اتركها فارغة للإبقاء على الحالية" : "6 أحرف على الأقل"}
             value={password}
             autoComplete="new-password"
             onChange={(event) => setPassword(event.target.value)}
@@ -159,7 +185,7 @@ export function AddTeacherDialog({
             disabled={busy}
             className="flex h-12 flex-1 items-center justify-center rounded-xl bg-[#3b82f6] font-bold text-white disabled:opacity-60"
           >
-            {busy ? <Loader2 className="size-4 animate-spin" /> : "حفظ المدرس"}
+            {busy ? <Loader2 className="size-4 animate-spin" /> : isEdit ? "حفظ التعديلات" : "حفظ المدرس"}
           </button>
           <button
             type="button"
@@ -171,5 +197,19 @@ export function AddTeacherDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function AddTeacherDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (teacher: TeacherSummary) => void;
+}) {
+  return (
+    <TeacherFormDialog open={open} onOpenChange={onOpenChange} onSaved={onCreated} />
   );
 }

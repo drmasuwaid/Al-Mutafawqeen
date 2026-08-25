@@ -1,20 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Building2, GraduationCap, Loader2, LogOut, UserPlus } from "lucide-react";
+import { Building2, GraduationCap, Loader2, LogOut, Pencil, Settings, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { AddTeacherDialog } from "@/components/add-teacher-dialog";
+import { AccountDialog } from "@/components/account-dialog";
+import { TeacherFormDialog } from "@/components/add-teacher-dialog";
 import { AppHeader } from "@/components/app-header";
+import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { classById } from "@/lib/catalog";
-import { formatGroupedSubjects, groupAssignments } from "@/lib/teachers";
+import { compareArabicNames, formatGroupedSubjects, groupAssignments } from "@/lib/teachers";
 import type { TeacherSummary } from "@/lib/types";
 
 export function PrincipalDashboard() {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, setProfile } = useAuth();
   const [teachers, setTeachers] = useState<TeacherSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [editing, setEditing] = useState<TeacherSummary | null>(null);
+  const [deleting, setDeleting] = useState<TeacherSummary | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const loadTeachers = useCallback(async () => {
     setLoading(true);
@@ -33,6 +39,31 @@ export function PrincipalDashboard() {
   useEffect(() => {
     void loadTeachers();
   }, [loadTeachers]);
+
+  function upsertTeacher(teacher: TeacherSummary) {
+    setTeachers((current) =>
+      [...current.filter((item) => item.id !== teacher.id), teacher].sort((a, b) =>
+        compareArabicNames(a.displayNameAr, b.displayNameAr)
+      )
+    );
+  }
+
+  async function confirmDelete() {
+    if (!deleting) return;
+    setDeleteBusy(true);
+    try {
+      const res = await fetch(`/api/teachers/${deleting.id}`, { method: "DELETE" });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "تعذر حذف المدرس");
+      setTeachers((current) => current.filter((item) => item.id !== deleting.id));
+      toast.success(`تم حذف ${deleting.displayNameAr} نهائياً.`);
+      setDeleting(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حذف المدرس");
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
 
   if (!profile) return null;
 
@@ -63,6 +94,14 @@ export function PrincipalDashboard() {
               </button>
               <button
                 type="button"
+                onClick={() => setAccountOpen(true)}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-indigo-400/40 px-3 text-sm font-bold hover:bg-indigo-400/55"
+              >
+                <Settings className="size-4" />
+                تغيير معلومات الحساب
+              </button>
+              <button
+                type="button"
                 onClick={() => setAddOpen(true)}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-3 text-sm font-bold text-indigo-700 hover:bg-indigo-50"
               >
@@ -76,7 +115,7 @@ export function PrincipalDashboard() {
         <section className="mt-6">
           <h3 className="text-lg font-extrabold text-slate-900">الكادر التدريسي</h3>
           <p className="mt-1 text-sm text-slate-400">
-            الأسماء مرتبة أبجدياً. يظهر للمدرس في قائمة الدخول الاسم المحفوظ هنا.
+            الأسماء مرتبة أبجدياً. يمكنك تعديل بيانات المدرس أو حذف حسابه من هنا.
           </p>
 
           {loading ? (
@@ -117,6 +156,24 @@ export function PrincipalDashboard() {
                           )}
                         </div>
                       </div>
+                      <div className="flex shrink-0 items-center">
+                        <button
+                          type="button"
+                          onClick={() => setEditing(teacher)}
+                          className="flex size-10 items-center justify-center rounded-full text-indigo-600 hover:bg-indigo-50"
+                          aria-label={`تعديل ${teacher.displayNameAr}`}
+                        >
+                          <Pencil className="size-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleting(teacher)}
+                          className="flex size-10 items-center justify-center rounded-full text-red-500 hover:bg-red-50"
+                          aria-label={`حذف ${teacher.displayNameAr}`}
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
                     </div>
                   </article>
                 );
@@ -126,16 +183,41 @@ export function PrincipalDashboard() {
         </section>
       </div>
 
-      <AddTeacherDialog
+      <TeacherFormDialog
         open={addOpen}
         onOpenChange={setAddOpen}
-        onCreated={(teacher) => {
-          setTeachers((current) =>
-            [...current.filter((item) => item.id !== teacher.id), teacher].sort((a, b) =>
-              a.displayNameAr.localeCompare(b.displayNameAr, "ar", { sensitivity: "base" })
-            )
-          );
+        onSaved={upsertTeacher}
+      />
+      <TeacherFormDialog
+        open={Boolean(editing)}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
         }}
+        teacher={editing}
+        onSaved={(teacher) => {
+          upsertTeacher(teacher);
+          setEditing(null);
+        }}
+      />
+      <ConfirmDeleteDialog
+        open={Boolean(deleting)}
+        onOpenChange={(open) => {
+          if (!open && !deleteBusy) setDeleting(null);
+        }}
+        title="حذف المدرس"
+        description={
+          deleting
+            ? `هل أنت متأكد من حذف «${deleting.displayNameAr}»؟ سيُحذف الحساب وواجباته نهائياً ولا يمكن التراجع.`
+            : ""
+        }
+        busy={deleteBusy}
+        onConfirm={() => void confirmDelete()}
+      />
+      <AccountDialog
+        open={accountOpen}
+        onOpenChange={setAccountOpen}
+        profile={profile}
+        onSaved={(next) => setProfile(next)}
       />
     </div>
   );

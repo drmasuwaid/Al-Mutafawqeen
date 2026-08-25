@@ -11,7 +11,7 @@ import type {
 import { adminDb } from "@/lib/firebase-admin";
 import { deleteHomeworkFiles } from "@/lib/files";
 import { isHomeworkOwner, sessionTeacherId, teacherClassIds } from "@/lib/teachers";
-import type { DocumentData, QueryDocumentSnapshot } from "firebase-admin/firestore";
+import type { DocumentData, DocumentReference, QueryDocumentSnapshot } from "firebase-admin/firestore";
 
 export const HOMEWORK_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -308,6 +308,18 @@ export async function updateHomework(
   await ref.update(patch);
 }
 
+async function purgeHomeworkDoc(ref: DocumentReference) {
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const current = snap.data() ?? {};
+  await deleteHomeworkFiles(mapAttachments(current.attachments));
+  const completions = await ref.collection("completions").get();
+  const batch = adminDb().batch();
+  completions.docs.forEach((doc) => batch.delete(doc.ref));
+  batch.delete(ref);
+  await batch.commit();
+}
+
 export async function deleteHomework(user: Profile, id: string) {
   const ref = dbHomework().doc(id);
   const snap = await ref.get();
@@ -316,12 +328,21 @@ export async function deleteHomework(user: Profile, id: string) {
   if (!isHomeworkOwner(user, { createdBy: String(current.createdBy ?? ""), teacherId: String(current.teacherId ?? "") })) {
     throw new Error("يمكنك حذف واجباتك فقط.");
   }
-  await deleteHomeworkFiles(mapAttachments(current.attachments));
-  const completions = await ref.collection("completions").get();
-  const batch = adminDb().batch();
-  completions.docs.forEach((doc) => batch.delete(doc.ref));
-  batch.delete(ref);
-  await batch.commit();
+  await purgeHomeworkDoc(ref);
+}
+
+export async function deleteHomeworkByTeacher(teacherId: string) {
+  const [createdSnap, teacherSnap] = await Promise.all([
+    dbHomework().where("createdBy", "==", teacherId).get(),
+    dbHomework().where("teacherId", "==", teacherId).get(),
+  ]);
+  const refs = new Map<string, DocumentReference>();
+  for (const doc of [...createdSnap.docs, ...teacherSnap.docs]) {
+    refs.set(doc.id, doc.ref);
+  }
+  for (const ref of refs.values()) {
+    await purgeHomeworkDoc(ref);
+  }
 }
 
 export async function setCompletion(

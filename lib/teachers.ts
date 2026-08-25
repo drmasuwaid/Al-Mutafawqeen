@@ -1,5 +1,5 @@
 import type { Profile, SubjectGrade } from "@/lib/types";
-import { classIdFor } from "@/lib/catalog";
+import { classIdFor, GRADES, SECTIONS } from "@/lib/catalog";
 
 export const TEACHER_ID_KEY = "stf_teacher_id";
 
@@ -122,4 +122,34 @@ export function assignmentsFromSelections(
     }
   }
   return rows;
+}
+
+export type NamedSelection = { id: string; nameAr: string };
+
+export function pickerSelectionsFromAssignments(rows: SubjectGrade[] | undefined): {
+  grades: NamedSelection[];
+  sections: NamedSelection[];
+  subjects: NamedSelection[];
+} {
+  const list = rows ?? [];
+  const gradeIds = new Set(list.map((row) => row.gradeId));
+  const sectionIds = new Set(list.map((row) => row.sectionId));
+  const subjects: NamedSelection[] = [];
+  const seen = new Set<string>();
+  for (const row of list) {
+    if (seen.has(row.subjectId)) continue;
+    seen.add(row.subjectId);
+    subjects.push({ id: row.subjectId, nameAr: row.subjectNameAr });
+  }
+  return {
+    grades: GRADES.filter((grade) => gradeIds.has(grade.id)).map((grade) => ({
+      id: grade.id,
+      nameAr: grade.nameAr,
+    })),
+    sections: SECTIONS.filter((section) => sectionIds.has(section.id)).map((section) => ({
+      id: section.id,
+      nameAr: `شعبة ${section.ar}`,
+    })),
+    subjects,
+  };
 }
