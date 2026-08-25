@@ -20,7 +20,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/auth/me")
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 6000);
+
+    fetch("/api/auth/me", { signal: controller.signal, cache: "no-store" })
       .then(async (res) => {
         const data = (await res.json()) as { profile: Profile | null };
         return data.profile ?? null;
@@ -28,11 +31,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then((next) => {
         if (!cancelled) setProfile(next);
       })
+      .catch(() => {
+        if (!cancelled) setProfile(null);
+      })
       .finally(() => {
+        window.clearTimeout(timer);
         if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
+      controller.abort();
     };
   }, []);
 
