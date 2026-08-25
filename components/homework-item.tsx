@@ -90,13 +90,23 @@ export function HomeworkItem({
         {publishedAt ? (
           <p className="flex items-center gap-2 text-sm text-slate-500">
             <Clock className="size-4 shrink-0 text-slate-400" />
-            تاريخ النشر: {publishedAt}
+            <span>
+              تاريخ النشر:{" "}
+              <span dir="ltr" className="inline-block tabular-nums">
+                {publishedAt}
+              </span>
+            </span>
           </p>
         ) : null}
         {item.dueAt ? (
           <p className="flex items-center gap-2 text-sm text-amber-700">
             <Calendar className="size-4 shrink-0 text-amber-500" />
-            موعد التسليم: {formatDueDay(item.dueAt)}
+            <span>
+              موعد التسليم:{" "}
+              <span dir="ltr" className="inline-block tabular-nums">
+                {formatDueDay(item.dueAt)}
+              </span>
+            </span>
           </p>
         ) : null}
       </div>
