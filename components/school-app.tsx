@@ -14,7 +14,9 @@ export function SchoolApp() {
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-    void navigator.serviceWorker.register("/sw.js");
+    void navigator.serviceWorker.register("/sw.js").catch(() => {
+      /* optional PWA cache */
+    });
   }, []);
 
   if (loading) {
