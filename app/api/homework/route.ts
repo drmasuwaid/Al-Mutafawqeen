@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireProfile } from "@/lib/session";
 import { createHomework, loadLiveSnapshot } from "@/lib/homework";
+import type { Attachment } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,31 +28,34 @@ export async function POST(request: Request) {
       detailsAr?: string;
       subjectId?: string;
       classId?: string;
-      dueAt?: string;
+      classIds?: string[];
+      dueAt?: string | null;
+      attachments?: Attachment[];
     };
-    if (
-      !body.title?.trim() ||
-      !body.titleAr?.trim() ||
-      !body.subjectId ||
-      !body.classId ||
-      !body.dueAt
-    ) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    const titleAr = (body.titleAr || body.title || "").trim();
+    const detailsAr = (body.detailsAr || body.details || "").trim();
+    const classIds = (body.classIds?.length ? body.classIds : body.classId ? [body.classId] : [])
+      .map((id) => id.trim())
+      .filter(Boolean);
+    if (!titleAr || !body.subjectId || !classIds.length) {
+      return NextResponse.json({ error: "أكمل حقول الواجب قبل النشر." }, { status: 400 });
     }
     const id = await createHomework(user, {
-      title: body.title.trim(),
-      titleAr: body.titleAr.trim(),
-      details: (body.details ?? "").trim(),
-      detailsAr: (body.detailsAr ?? "").trim(),
+      title: (body.title || titleAr).trim(),
+      titleAr,
+      details: (body.details || detailsAr).trim(),
+      detailsAr,
       subjectId: body.subjectId,
-      classId: body.classId,
-      dueAt: new Date(body.dueAt).toISOString(),
+      classId: classIds[0],
+      classIds,
+      dueAt: body.dueAt ? new Date(body.dueAt).toISOString() : null,
+      attachments: Array.isArray(body.attachments) ? body.attachments : [],
       status: "published",
     });
     return NextResponse.json({ id });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not publish" },
+      { error: error instanceof Error ? error.message : "تعذر نشر الواجب" },
       { status: 400 }
     );
   }

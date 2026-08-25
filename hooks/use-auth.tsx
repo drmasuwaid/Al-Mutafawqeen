@@ -6,8 +6,10 @@ import type { Profile } from "@/lib/types";
 type AuthContextValue = {
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (username: string, password: string) => Promise<void>;
+  enterStudent: (gradeId: string, sectionId: string) => Promise<void>;
   signOut: () => Promise<void>;
+  setProfile: (profile: Profile | null) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -34,15 +36,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (username: string, password: string) => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
     });
     const data = (await res.json()) as { profile?: Profile; error?: string };
     if (!res.ok || !data.profile) {
-      throw new Error(data.error || "Sign in failed");
+      throw new Error(data.error || "فشل تسجيل الدخول");
+    }
+    setProfile(data.profile);
+  }, []);
+
+  const enterStudent = useCallback(async (gradeId: string, sectionId: string) => {
+    const res = await fetch("/api/auth/student", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ gradeId, sectionId }),
+    });
+    const data = (await res.json()) as { profile?: Profile; error?: string };
+    if (!res.ok || !data.profile) {
+      throw new Error(data.error || "تعذر الدخول لواجهة الطلاب");
     }
     setProfile(data.profile);
   }, []);
@@ -53,8 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ profile, loading, signIn, signOut }),
-    [profile, loading, signIn, signOut]
+    () => ({ profile, loading, signIn, enterStudent, signOut, setProfile }),
+    [profile, loading, signIn, enterStudent, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

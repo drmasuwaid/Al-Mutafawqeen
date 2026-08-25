@@ -1,52 +1,50 @@
-# Al-Mutafawqeen Live Homework
+# منصة الواجبات المدرسية
 
-Homework board for **Al-Mutafawqeen Secondary School**. Teachers publish assignments; students and other staff see them on every open device through **Firebase Firestore live listeners**.
+تطبيق واجبات لمدرسة المتفوقين الثانوية: واجهة عربية RTL مطابقة للمنصة الأصلية، مع تزامن لحظي عبر Firebase ودعم التصفح دون اتصال.
 
-The original backup zip was not available in this cloud workspace, so this is a rebuilt, Firebase-backed app rather than a patch of the Dropbox archive.
+## التشغيل محلياً
 
-## What you get
-
-- Role-based access: principal, teacher, student
-- Arabic / English, with RTL
-- Live board: new homework and completions stream in without refresh
-- Firebase Auth + Cloud Firestore (emulator locally, your project in production)
-- Security rules for a later client-SDK move
-
-## Run locally (Firebase emulator)
-
-You need Node 20+ and Java (for the Firestore emulator).
+يلزم Node 20+ و Java (لمحاكي Firestore).
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:43123](http://127.0.0.1:43123).
+افتح [http://127.0.0.1:43123](http://127.0.0.1:43123).
 
-Every demo account uses password `LiveSync2026`:
+### دخول الطلاب
 
-| Role | Email |
-| --- | --- |
-| Principal | `noura.admin@mutafawqeen.school` |
-| Arabic teacher | `layla.arabic@mutafawqeen.school` |
-| Math teacher | `omar.math@mutafawqeen.school` |
-| Student, 4th Sci. A | `ahmed.g4a@mutafawqeen.school` |
-| Student, 4th Sci. A | `sara.g4a@mutafawqeen.school` |
-| Student, 5th Sci. A | `fatima.g5a@mutafawqeen.school` |
+لا كلمة مرور. من الصفحة الرئيسية اختر **واجهة الطلاب** ثم:
 
-To see live sync: sign in as the Arabic teacher in one window and as Ahmed in another, then publish a homework item.
+- الصف: الأول / الثاني / الثالث متوسط، أو الرابع / الخامس / السادس علمي
+- الشعبة: أ إلى و
 
-## Use your own Firebase project
+لتجربة واجبات جاهزة اختر **الثاني متوسط** و **شعبة أ**.
 
-1. Create a Firebase project and enable **Authentication (Email/Password)** and **Cloud Firestore**.
-2. Copy `env.example` to `.env.local` and fill in the values.
-3. Deploy `firebase/firestore.rules`.
-4. Create a service account JSON, put it in `FIREBASE_SERVICE_ACCOUNT`.
-5. Seed users or create matching `users/{uid}` documents (role, class, subjects).
-6. Run `npm run dev:next` (no emulator) or `npm run build && npm start`.
+### دخول المدرس
 
-Do not set `FIRESTORE_EMULATOR_HOST` or `FIREBASE_AUTH_EMULATOR_HOST` in production.
+| اسم المستخدم | كلمة المرور | الدور |
+| --- | --- | --- |
+| `ahmed` | `LiveSync2026` | أ. أحمد العراقي (رياضيات / فيزياء) |
+| `layla` | `LiveSync2026` | اللغة العربية |
+| `omar` | `LiveSync2026` | الرياضيات |
+| `noura` | `LiveSync2026` | إدارة المدرسة |
 
-## Architecture
+## ماذا يفعل التطبيق
 
-Browsers talk only to this Next.js app. The server uses the Firebase Admin SDK and pushes Firestore snapshots over **Server-Sent Events** (`/api/homework/stream`). That keeps a single public port for preview while still using Firebase as the live source of truth.
+- صفحة ترحيب ببطاقتي الطلاب والكادر، وشارة **متصل (Online)**
+- الطلاب: استعراض الواجبات والمرفقات حسب الصف والشعبة (قراءة فقط)
+- المدرس: لوحة زرقاء، إدارة المراحل والشعب، نشر واجب مع مرفقات وموعد تسليم اختياري
+- بث مباشر من Firestore عبر Server-Sent Events، مع تخزين محلي للوحة عند انقطاع الشبكة
+
+## مشروع Firebase الخاص بك
+
+1. فعّل Authentication (Email/Password) و Cloud Firestore.
+2. انسخ `env.example` إلى `.env.local`.
+3. انشر `firebase/firestore.rules`.
+4. ضع حساب الخدمة في `FIREBASE_SERVICE_ACCOUNT`.
+5. أنشئ وثائق `users/{uid}` بنفس الحقول (role, username, classIds).
+6. شغّل `npm run dev:next` أو `npm run build && npm start`.
+
+لا تضبط `FIRESTORE_EMULATOR_HOST` أو `FIREBASE_AUTH_EMULATOR_HOST` في الإنتاج.

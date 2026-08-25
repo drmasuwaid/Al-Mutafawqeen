@@ -1,24 +1,30 @@
 import type { Metadata } from "next";
-import { Cairo } from "next/font/google";
+import { Tajawal } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const cairo = Cairo({
+const tajawal = Tajawal({
   subsets: ["arabic", "latin"],
+  weight: ["400", "500", "700", "800"],
   variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
-  title: "واجبات المتفوقين | Live Homework",
+  title: "منصة الواجبات المدرسية | Homework App",
   description:
-    "Homework management for Al-Mutafawqeen Secondary School with Firebase live synchronization.",
+    "منصة الواجبات المدرسية لمدرسة المتفوقين مع تزامن لحظي ودعم العمل دون إنترنت.",
   manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning className={`${cairo.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-background text-foreground">
+    <html
+      lang="ar"
+      dir="rtl"
+      suppressHydrationWarning
+      className={`${tajawal.variable} h-full antialiased`}
+    >
+      <body className="flex min-h-full flex-col bg-[#f4f6f8] text-slate-800">
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -29,7 +29,9 @@ export function HomeworkBoard({
 }) {
   const { t } = useLocale();
   const visible =
-    filter === "all" ? homework : homework.filter((item) => dueBucket(item.dueAt) === filter);
+    filter === "all"
+      ? homework
+      : homework.filter((item) => dueBucket(item.dueAt) === filter);
 
   async function toggleDone(item: Homework, done: boolean) {
     const res = await fetch("/api/completions", {
@@ -129,7 +131,7 @@ function HomeworkCard({
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="secondary">{locale === "ar" ? subject?.nameAr : subject?.name}</Badge>
                   <Badge variant="outline">{locale === "ar" ? classItem?.nameAr : classItem?.name}</Badge>
-                  <DueBadge bucket={bucket} label={t[bucket]} />
+                  {bucket ? <DueBadge bucket={bucket} label={t[bucket]} /> : null}
                   {isFresh(item.createdAt) ? (
                     <Badge className="bg-teal-700 text-white">{t.justNow}</Badge>
                   ) : null}
@@ -145,10 +147,12 @@ function HomeworkCard({
           </CardHeader>
           <CardContent className="space-y-3">
             {details ? <p className="text-sm leading-6 text-muted-foreground">{details}</p> : null}
-            <p className="text-sm text-teal-950">
-              <span className="text-muted-foreground">{t.due}: </span>
-              {formatDue(item.dueAt, locale)}
-            </p>
+                  {item.dueAt ? (
+                    <p className="text-sm text-teal-950">
+                      <span className="text-muted-foreground">{t.due}: </span>
+                      {formatDue(item.dueAt, locale)}
+                    </p>
+                  ) : null}
             <p className="text-xs text-muted-foreground">
               {t.assignedBy} {teacher}
               {profile.role !== "student"

@@ -6,7 +6,8 @@ export function startOfDay(date: Date) {
   return copy;
 }
 
-export function dueBucket(dueAt: string, now = new Date()): DueBucket {
+export function dueBucket(dueAt: string | null, now = new Date()): DueBucket | null {
+  if (!dueAt) return null;
   const dueDay = startOfDay(new Date(dueAt));
   const today = startOfDay(now);
   if (dueDay < today) return "overdue";
@@ -27,6 +28,19 @@ export function formatDue(dueAt: string, locale: "en" | "ar") {
   }).format(new Date(dueAt));
 }
 
+export function formatDueDay(dueAt: string) {
+  const date = new Date(dueAt);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+export function toDateInput(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 export function toDateTimeLocal(value: string) {
   const date = new Date(value);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -44,4 +58,3 @@ export function formatClock(value: string, locale: "en" | "ar") {
     second: "2-digit",
   }).format(new Date(value));
 }
-

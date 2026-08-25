@@ -12,19 +12,40 @@ initializeApp({ projectId: PROJECT_ID });
 const auth = getAuth();
 const db = getFirestore();
 
-const classes = [
-  { id: "g4a", name: "Fourth Scientific A", nameAr: "الرابع العلمي أ", grade: 4, section: "A" },
-  { id: "g4b", name: "Fourth Scientific B", nameAr: "الرابع العلمي ب", grade: 4, section: "B" },
-  { id: "g5a", name: "Fifth Scientific A", nameAr: "الخامس العلمي أ", grade: 5, section: "A" },
-  { id: "g6a", name: "Sixth Scientific A", nameAr: "السادس العلمي أ", grade: 6, section: "A" },
+const SECTIONS = [
+  { id: "a", ar: "أ", en: "A" },
+  { id: "b", ar: "ب", en: "B" },
+  { id: "c", ar: "ج", en: "C" },
+  { id: "d", ar: "د", en: "D" },
+  { id: "e", ar: "هـ", en: "E" },
+  { id: "f", ar: "و", en: "F" },
 ];
 
+const GRADES = [
+  { id: "m1", nameAr: "الأول متوسط", name: "First Intermediate", grade: 1 },
+  { id: "m2", nameAr: "الثاني متوسط", name: "Second Intermediate", grade: 2 },
+  { id: "m3", nameAr: "الثالث متوسط", name: "Third Intermediate", grade: 3 },
+  { id: "s4", nameAr: "الرابع علمي", name: "Fourth Scientific", grade: 4 },
+  { id: "s5", nameAr: "الخامس علمي", name: "Fifth Scientific", grade: 5 },
+  { id: "s6", nameAr: "السادس علمي", name: "Sixth Scientific", grade: 6 },
+];
+
+const classes = GRADES.flatMap((grade) =>
+  SECTIONS.map((section) => ({
+    id: `${grade.id}-${section.id}`,
+    name: `${grade.name} ${section.en}`,
+    nameAr: `${grade.nameAr} · شعبة ${section.ar}`,
+    grade: grade.grade,
+    section: section.en,
+  }))
+);
+
 const subjects = [
-  { id: "arabic", name: "Arabic", nameAr: "اللغة العربية", color: "#b45309" },
+  { id: "arabic", name: "Arabic", nameAr: "اللغة العربية", color: "#2563eb" },
   { id: "english", name: "English", nameAr: "اللغة الإنكليزية", color: "#1d4ed8" },
   { id: "french", name: "French", nameAr: "اللغة الفرنسية", color: "#7c3aed" },
-  { id: "math", name: "Mathematics", nameAr: "الرياضيات", color: "#0f766e" },
-  { id: "physics", name: "Physics", nameAr: "الفيزياء", color: "#0369a1" },
+  { id: "math", name: "Mathematics", nameAr: "الرياضيات", color: "#2563eb" },
+  { id: "physics", name: "Physics", nameAr: "الفيزياء", color: "#64748b" },
   { id: "chemistry", name: "Chemistry", nameAr: "الكيمياء", color: "#be123c" },
   { id: "biology", name: "Biology", nameAr: "علم الأحياء", color: "#15803d" },
   { id: "islamic", name: "Islamic Education", nameAr: "التربية الإسلامية", color: "#365314" },
@@ -35,51 +56,42 @@ const users = [
   {
     uid: "admin-noura",
     email: "noura.admin@mutafawqeen.school",
+    username: "noura",
     displayName: "Noura Abdelqader",
     displayNameAr: "نورة عبد القادر",
     role: "admin",
+    classIds: classes.map((item) => item.id),
+    subjectIds: subjects.map((item) => item.id),
+  },
+  {
+    uid: "teacher-ahmed",
+    email: "ahmed@mutafawqeen.school",
+    username: "ahmed",
+    displayName: "Ahmed Al-Iraqi",
+    displayNameAr: "أ. أحمد العراقي",
+    role: "teacher",
+    classIds: ["m2-a", "m2-b", "s4-a", "s4-b"],
+    subjectIds: ["math", "physics"],
   },
   {
     uid: "teacher-layla",
     email: "layla.arabic@mutafawqeen.school",
+    username: "layla",
     displayName: "Layla Al-Khazraji",
     displayNameAr: "ليلى الخزرجي",
     role: "teacher",
-    classIds: ["g4a", "g4b"],
+    classIds: ["s4-a", "s4-b", "s5-a"],
     subjectIds: ["arabic"],
   },
   {
     uid: "teacher-omar",
     email: "omar.math@mutafawqeen.school",
+    username: "omar",
     displayName: "Omar Al-Jubouri",
     displayNameAr: "عمر الجبوري",
     role: "teacher",
-    classIds: ["g5a", "g6a"],
+    classIds: ["s5-a", "s6-a"],
     subjectIds: ["math"],
-  },
-  {
-    uid: "student-ahmed",
-    email: "ahmed.g4a@mutafawqeen.school",
-    displayName: "Ahmed Mohammed",
-    displayNameAr: "أحمد محمد",
-    role: "student",
-    classId: "g4a",
-  },
-  {
-    uid: "student-sara",
-    email: "sara.g4a@mutafawqeen.school",
-    displayName: "Sara Hassan",
-    displayNameAr: "سارة حسن",
-    role: "student",
-    classId: "g4a",
-  },
-  {
-    uid: "student-fatima",
-    email: "fatima.g5a@mutafawqeen.school",
-    displayName: "Fatima Ali",
-    displayNameAr: "فاطمة علي",
-    role: "student",
-    classId: "g5a",
   },
 ];
 
@@ -107,7 +119,22 @@ async function upsertUser(user) {
   await db.doc(`users/${uid}`).set(profile);
 }
 
+async function wipeCollection(name) {
+  const existing = await db.collection(name).get();
+  for (const doc of existing.docs) {
+    const sub = await doc.ref.collection("completions").get();
+    const batch = db.batch();
+    sub.docs.forEach((row) => batch.delete(row.ref));
+    batch.delete(doc.ref);
+    await batch.commit();
+  }
+}
+
 async function main() {
+  await wipeCollection("classes");
+  await wipeCollection("subjects");
+  await wipeCollection("homework");
+
   for (const item of classes) {
     const { id, ...data } = item;
     await db.doc(`classes/${id}`).set(data);
@@ -120,90 +147,70 @@ async function main() {
     await upsertUser(user);
   }
 
-  const existing = await db.collection("homework").get();
-  for (const doc of existing.docs) {
-    const completions = await doc.ref.collection("completions").get();
-    const batch = db.batch();
-    completions.docs.forEach((row) => batch.delete(row.ref));
-    batch.delete(doc.ref);
-    await batch.commit();
-  }
-
   const homework = [
     {
-      title: "Lesson summary: Al-Mutanabbi",
-      titleAr: "تلخيص قصيدة المتنبي",
-      details: "Write a one-page summary of the poem discussed in class and list three rhetorical devices.",
-      detailsAr: "اكتب تلخيصاً بصفحة واحدة للقصيدة التي نوقشت في الصف، واذكر ثلاثة من المحسنات البديعية.",
-      subjectId: "arabic",
-      classId: "g4a",
-      teacherId: "teacher-layla",
-      teacherName: "Layla Al-Khazraji",
-      teacherNameAr: "ليلى الخزرجي",
-      dueAt: daysFromNow(-1, 20),
-      status: "published",
-    },
-    {
-      title: "Worksheet: quadratic equations",
-      titleAr: "ورقة عمل: المعادلات التربيعية",
-      details: "Complete exercises 4 to 12 in the booklet. Show every step.",
-      detailsAr: "أكمل التمارين من 4 إلى 12 في الكراس مع إظهار خطوات الحل.",
+      title: "Linear equations in two variables",
+      titleAr: "حل تمارين المعادلات الخطية في متغيرين",
+      details:
+        "Complete exercises 1–12. Show every step and bring the notebook tomorrow.",
+      detailsAr:
+        "حل التمارين من 1 إلى 12 في كتاب الرياضيات مع إظهار خطوات الحل كاملة، وتسليم الدفتر غداً.",
       subjectId: "math",
-      classId: "g5a",
-      teacherId: "teacher-omar",
-      teacherName: "Omar Al-Jubouri",
-      teacherNameAr: "عمر الجبوري",
-      dueAt: daysFromNow(0, 21),
+      classId: "m2-a",
+      classIds: ["m2-a"],
+      teacherId: "teacher-ahmed",
+      teacherName: "Ahmed Al-Iraqi",
+      teacherNameAr: "أ. أحمد العراقي",
+      dueAt: daysFromNow(3, 16),
       status: "published",
+      attachments: [],
     },
     {
-      title: "Reading: the school garden",
-      titleAr: "قراءة: حديقة المدرسة",
-      details: "Read the text on page 48 and answer the comprehension questions.",
-      detailsAr: "اقرأ النص في الصفحة 48 وأجب عن أسئلة الاستيعاب.",
+      title: "Newton’s laws worksheet",
+      titleAr: "ورقة عمل قوانين نيوتن للحركة",
+      details: "Read pages 44–47 and answer the questions at the end of the lesson.",
+      detailsAr:
+        "اقرأ الصفحات 44 إلى 47 من كتاب الفيزياء وأجب عن الأسئلة في نهاية الدرس.",
+      subjectId: "physics",
+      classId: "m2-a",
+      classIds: ["m2-a"],
+      teacherId: "teacher-ahmed",
+      teacherName: "Ahmed Al-Iraqi",
+      teacherNameAr: "أ. أحمد العراقي",
+      dueAt: daysFromNow(5, 16),
+      status: "published",
+      attachments: [{ name: "قوانين-نيوتن.pdf", type: "application/pdf", size: 240000 }],
+    },
+    {
+      title: "Al-Mutanabbi summary",
+      titleAr: "تلخيص قصيدة المتنبي",
+      details: "Write a one-page summary and list three rhetorical devices.",
+      detailsAr:
+        "اكتب تلخيصاً بصفحة واحدة للقصيدة التي نوقشت في الصف، واذكر ثلاثة من المحسنات البديعية.",
       subjectId: "arabic",
-      classId: "g4a",
+      classId: "s4-a",
+      classIds: ["s4-a"],
       teacherId: "teacher-layla",
       teacherName: "Layla Al-Khazraji",
       teacherNameAr: "ليلى الخزرجي",
       dueAt: daysFromNow(2, 16),
       status: "published",
-    },
-    {
-      title: "Limits practice set",
-      titleAr: "تمارين النهايات",
-      details: "Solve the even-numbered problems from chapter 3.",
-      detailsAr: "حل المسائل ذات الأرقام الزوجية من الفصل الثالث.",
-      subjectId: "math",
-      classId: "g6a",
-      teacherId: "teacher-omar",
-      teacherName: "Omar Al-Jubouri",
-      teacherNameAr: "عمر الجبوري",
-      dueAt: daysFromNow(5, 16),
-      status: "published",
+      attachments: [],
     },
   ];
 
   const now = new Date().toISOString();
   for (const item of homework) {
-    const ref = await db.collection("homework").add({
+    await db.collection("homework").add({
       ...item,
       createdAt: now,
       updatedAt: now,
     });
-    if (item.classId === "g4a" && item.subjectId === "arabic" && item.dueAt === homework[0].dueAt) {
-      await ref.collection("completions").doc("student-sara").set({
-        studentName: "Sara Hassan",
-        studentNameAr: "سارة حسن",
-        status: "done",
-        completedAt: now,
-        note: "",
-      });
-    }
   }
 
-  console.log("Seeded Al-Mutafawqeen demo school.");
-  console.log("Password for every demo account:", PASSWORD);
+  console.log("Seeded Al-Mutafawqeen homework PWA.");
+  console.log("Teacher login: ahmed /", PASSWORD);
+  console.log("Student login: pick grade + section (try الثاني متوسط / شعبة أ)");
 }
 
 main().catch((error) => {

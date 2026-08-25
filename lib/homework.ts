@@ -1,4 +1,5 @@
 import type {
+  Attachment,
   Completion,
   Homework,
   HomeworkStatus,
@@ -20,38 +21,73 @@ function asIso(value: unknown, fallback = new Date().toISOString()) {
   return fallback;
 }
 
+function asIsoOrNull(value: unknown): string | null {
+  if (!value) return null;
+  return asIso(value);
+}
+
+function mapAttachments(value: unknown): Attachment[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    const row = item as Record<string, unknown>;
+    return {
+      name: String(row.name ?? "ملف"),
+      type: String(row.type ?? "application/octet-stream"),
+      size: Number(row.size ?? 0),
+      dataUrl: row.dataUrl ? String(row.dataUrl) : undefined,
+    };
+  });
+}
+
+export function homeworkClassIds(item: { classId?: string; classIds?: string[] }) {
+  if (item.classIds?.length) return item.classIds;
+  return item.classId ? [item.classId] : [];
+}
+
 function mapHomework(
   doc: QueryDocumentSnapshot<DocumentData>,
   completions: Completion[]
 ): Homework {
   const data = doc.data();
+  const classId = String(data.classId ?? "");
+  const classIds = Array.isArray(data.classIds)
+    ? data.classIds.map(String)
+    : classId
+      ? [classId]
+      : [];
   return {
     id: doc.id,
     title: String(data.title ?? ""),
-    titleAr: String(data.titleAr ?? ""),
+    titleAr: String(data.titleAr ?? data.title ?? ""),
     details: String(data.details ?? ""),
-    detailsAr: String(data.detailsAr ?? ""),
+    detailsAr: String(data.detailsAr ?? data.details ?? ""),
     subjectId: String(data.subjectId ?? ""),
-    classId: String(data.classId ?? ""),
+    classId: classId || classIds[0] || "",
+    classIds,
     teacherId: String(data.teacherId ?? ""),
     teacherName: String(data.teacherName ?? ""),
     teacherNameAr: String(data.teacherNameAr ?? ""),
-    dueAt: asIso(data.dueAt),
+    dueAt: asIsoOrNull(data.dueAt),
     status: (data.status as HomeworkStatus) ?? "published",
     createdAt: asIso(data.createdAt),
     updatedAt: asIso(data.updatedAt),
+    attachments: mapAttachments(data.attachments),
     completions,
   };
 }
 
-function homeworkVisible(user: Profile, item: { classId: string; teacherId: string; status: string }) {
+function homeworkVisible(
+  user: Profile,
+  item: { classId: string; classIds?: string[]; teacherId: string; status: string }
+) {
   if (user.role === "admin") return true;
   if (item.status !== "published" && user.uid !== item.teacherId) return false;
+  const ids = homeworkClassIds(item);
   if (user.role === "teacher") {
     if (item.teacherId === user.uid) return true;
-    return Boolean(user.classIds?.includes(item.classId));
+    return ids.some((id) => user.classIds?.includes(id));
   }
-  return user.classId === item.classId && item.status === "published";
+  return Boolean(user.classId && ids.includes(user.classId) && item.status === "published");
 }
 
 async function loadCompletions(homeworkId: string): Promise<Completion[]> {
@@ -95,7 +131,7 @@ export async function listSubjects(): Promise<Subject[]> {
       id: doc.id,
       name: String(data.name ?? ""),
       nameAr: String(data.nameAr ?? ""),
-      color: String(data.color ?? "#0f766e"),
+      color: String(data.color ?? "#2563eb"),
     };
   });
 }
@@ -120,7 +156,7 @@ export async function listStudents(): Promise<Profile[]> {
 
 export async function loadLiveSnapshot(user: Profile): Promise<LiveSnapshot> {
   const [homeworkSnap, classes, subjects, students] = await Promise.all([
-    adminDb().collection("homework").orderBy("dueAt", "asc").get(),
+    adminDb().collection("homework").get(),
     listClasses(),
     listSubjects(),
     user.role === "student" ? Promise.resolve([]) : listStudents(),
@@ -132,6 +168,7 @@ export async function loadLiveSnapshot(user: Profile): Promise<LiveSnapshot> {
         const data = doc.data();
         const preview = {
           classId: String(data.classId ?? ""),
+          classIds: Array.isArray(data.classIds) ? data.classIds.map(String) : undefined,
           teacherId: String(data.teacherId ?? ""),
           status: String(data.status ?? "published"),
         };
@@ -140,7 +177,9 @@ export async function loadLiveSnapshot(user: Profile): Promise<LiveSnapshot> {
         return mapHomework(doc, completions);
       })
     )
-  ).filter((item): item is Homework => item !== null);
+  )
+    .filter((item): item is Homework => item !== null)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return {
     homework,
@@ -180,26 +219,41 @@ export type HomeworkInput = {
   detailsAr: string;
   subjectId: string;
   classId: string;
-  dueAt: string;
+  classIds: string[];
+  dueAt?: string | null;
   status?: HomeworkStatus;
+  attachments?: Attachment[];
 };
+
+function assertTeacherCanUseClasses(user: Profile, classIds: string[]) {
+  if (user.role === "admin") return;
+  if (!classIds.length) throw new Error("اختر شعبة واحدة على الأقل.");
+  if (user.role === "teacher" && user.classIds) {
+    const blocked = classIds.find((id) => !user.classIds?.includes(id));
+    if (blocked) {
+      throw new Error("يمكنك النشر للشعب المسندة إليك فقط.");
+    }
+  }
+}
 
 export async function createHomework(user: Profile, input: HomeworkInput) {
   if (user.role === "student") {
     throw new Error("Students cannot assign homework.");
   }
-  if (
-    user.role === "teacher" &&
-    user.classIds &&
-    !user.classIds.includes(input.classId)
-  ) {
-    throw new Error("You can only assign homework to your own classes.");
-  }
+  assertTeacherCanUseClasses(user, input.classIds);
 
   const now = new Date().toISOString();
   const ref = dbHomework().doc();
   await ref.set({
-    ...input,
+    title: input.title,
+    titleAr: input.titleAr,
+    details: input.details,
+    detailsAr: input.detailsAr,
+    subjectId: input.subjectId,
+    classId: input.classId,
+    classIds: input.classIds,
+    dueAt: input.dueAt ?? null,
+    attachments: input.attachments ?? [],
     status: input.status ?? "published",
     teacherId: user.uid,
     teacherName: user.displayName,
@@ -222,7 +276,12 @@ export async function updateHomework(
   if (user.role !== "admin" && current.teacherId !== user.uid) {
     throw new Error("You can only edit homework you assigned.");
   }
-  await ref.update({ ...input, updatedAt: new Date().toISOString() });
+  if (input.classIds) assertTeacherCanUseClasses(user, input.classIds);
+  const patch: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  for (const [key, value] of Object.entries(input)) {
+    if (value !== undefined) patch[key] = value;
+  }
+  await ref.update(patch);
 }
 
 export async function deleteHomework(user: Profile, id: string) {
@@ -252,7 +311,11 @@ export async function setCompletion(
   const homework = await dbHomework().doc(homeworkId).get();
   if (!homework.exists) throw new Error("Homework not found.");
   const data = homework.data() ?? {};
-  if (data.classId !== user.classId) {
+  const ids = homeworkClassIds({
+    classId: String(data.classId ?? ""),
+    classIds: Array.isArray(data.classIds) ? data.classIds.map(String) : undefined,
+  });
+  if (!user.classId || !ids.includes(user.classId)) {
     throw new Error("This homework is not assigned to your class.");
   }
   const now = new Date().toISOString();
