@@ -77,7 +77,7 @@ function mapHomework(
     teacherNameAr: String(data.createdByNameAr ?? data.teacherNameAr ?? ""),
     dueAt: asIsoOrNull(data.dueAt),
     status: (data.status as HomeworkStatus) ?? "published",
-    createdAt: asIso(data.createdAt),
+    createdAt: asIso(data.createdAt || data.updatedAt),
     updatedAt: asIso(data.updatedAt),
     attachments: mapAttachments(data.attachments),
     completions,

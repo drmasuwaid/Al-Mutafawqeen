@@ -34,6 +34,17 @@ export function formatDueDay(dueAt: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+export function formatPublishedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const ymd = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const hours24 = date.getHours();
+  const hours12 = hours24 % 12 || 12;
+  const period = hours24 >= 12 ? "م" : "ص";
+  return `${ymd} • ${hours12}:${pad(date.getMinutes())} ${period}`;
+}
+
 export function toDateInput(value: string | null) {
   if (!value) return "";
   const date = new Date(value);

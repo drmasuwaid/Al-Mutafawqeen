@@ -1,9 +1,9 @@
 "use client";
 
-import { Calendar, Pencil, Trash2 } from "lucide-react";
+import { Calendar, Clock, Pencil, Trash2 } from "lucide-react";
 import { AttachmentGallery } from "@/components/attachment-gallery";
 import { classById } from "@/lib/catalog";
-import { formatDueDay, isFresh } from "@/lib/dates";
+import { formatDueDay, formatPublishedAt, isFresh } from "@/lib/dates";
 import type { Homework, Subject } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,7 @@ export function HomeworkItem({
   const ownerId = (item.createdBy || "").trim();
   const sessionId = (currentUserId || "").trim();
   const canManage = Boolean(sessionId && ownerId && ownerId === sessionId);
+  const publishedAt = formatPublishedAt(item.createdAt);
 
   return (
     <article className="soft-card p-5">
@@ -83,14 +84,22 @@ export function HomeworkItem({
         <p className="mt-2 text-sm leading-7 text-slate-500">{item.detailsAr || item.details}</p>
       ) : null}
 
-      {item.dueAt ? (
-        <p className="mt-4 flex items-center gap-2 text-sm text-amber-700">
-          <Calendar className="size-4 text-amber-500" />
-          موعد التسليم: {formatDueDay(item.dueAt)}
-        </p>
-      ) : null}
-
       <AttachmentGallery attachments={item.attachments} />
+
+      <div className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-3">
+        {publishedAt ? (
+          <p className="flex items-center gap-2 text-sm text-slate-500">
+            <Clock className="size-4 shrink-0 text-slate-400" />
+            تاريخ النشر: {publishedAt}
+          </p>
+        ) : null}
+        {item.dueAt ? (
+          <p className="flex items-center gap-2 text-sm text-amber-700">
+            <Calendar className="size-4 shrink-0 text-amber-500" />
+            موعد التسليم: {formatDueDay(item.dueAt)}
+          </p>
+        ) : null}
+      </div>
     </article>
   );
 }
