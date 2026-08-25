@@ -8,15 +8,6 @@ export function attachmentUrl(file: Attachment, options?: { download?: boolean }
   return `/api/attachments?${params.toString()}`;
 }
 
-export function isPdfAttachment(file: { type?: string; name?: string }) {
-  return (
-    (file.type ?? "").includes("pdf") ||
-    (file.name ?? "").toLowerCase().endsWith(".pdf")
-  );
-}
-
-export function attachmentFrameClass(file: { type?: string; name?: string }) {
-  return isPdfAttachment(file)
-    ? "border border-solid border-[#f97316]"
-    : "border border-solid border-[#38bdf8]";
+export function attachmentFrameClass() {
+  return "border-[1.5px] border-solid border-[#38bdf8]";
 }

@@ -284,7 +284,7 @@ export function PublishDialog({
                 key={`${file.name}-${index}`}
                 className={cn(
                   "flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2",
-                  attachmentFrameClass(file)
+                  attachmentFrameClass()
                 )}
               >
                 <span className="truncate">{file.name}</span>
@@ -298,7 +298,7 @@ export function PublishDialog({
                 key={`${file.name}-new-${index}`}
                 className={cn(
                   "flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2",
-                  attachmentFrameClass(file)
+                  attachmentFrameClass()
                 )}
               >
                 <span className="truncate">{file.name} (جديد)</span>
