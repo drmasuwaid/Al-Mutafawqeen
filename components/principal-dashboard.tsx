@@ -8,8 +8,7 @@ import { TeacherFormDialog } from "@/components/add-teacher-dialog";
 import { AppHeader } from "@/components/app-header";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { useAuth } from "@/hooks/use-auth";
-import { classById } from "@/lib/catalog";
-import { compareArabicNames, formatGroupedSubjects, groupAssignments } from "@/lib/teachers";
+import { compareArabicNames, groupAssignmentsByGrade } from "@/lib/teachers";
 import type { TeacherSummary } from "@/lib/types";
 
 export function PrincipalDashboard() {
@@ -129,7 +128,7 @@ export function PrincipalDashboard() {
           ) : (
             <div className="mt-4 grid gap-3">
               {teachers.map((teacher) => {
-                const groups = groupAssignments(teacher.subjectsGrades);
+                const groups = groupAssignmentsByGrade(teacher.subjectsGrades);
                 return (
                   <article key={teacher.id} className="soft-card p-4">
                     <div className="flex items-start gap-3">
@@ -143,16 +142,11 @@ export function PrincipalDashboard() {
                           {groups.length === 0 ? (
                             <p className="text-sm text-slate-400">لم تُسند مراحل بعد.</p>
                           ) : (
-                            groups.map((group) => {
-                              const cls = classById(group.key);
-                              const subjectsLabel = formatGroupedSubjects(group.subjectNamesAr);
-                              return (
-                                <p key={group.key} className="truncate text-sm text-slate-600">
-                                  {cls?.gradeLabelAr} · {cls?.sectionLabelAr}
-                                  {subjectsLabel ? ` • ${subjectsLabel}` : ""}
-                                </p>
-                              );
-                            })
+                            groups.map((group) => (
+                              <p key={group.gradeId} className="text-sm leading-6 text-slate-600">
+                                {group.line}
+                              </p>
+                            ))
                           )}
                         </div>
                       </div>

@@ -94,6 +94,72 @@ export function formatGroupedSubjects(names: string[]) {
   return names.filter(Boolean).join("، ");
 }
 
+export type GradeAssignmentGroup = {
+  gradeId: string;
+  gradeNameAr: string;
+  sectionIds: string[];
+  sectionLabelsAr: string[];
+  subjectNamesAr: string[];
+  rows: SubjectGrade[];
+  line: string;
+};
+
+export function formatGradeAssignmentLine(
+  gradeNameAr: string,
+  sectionLabelsAr: string[],
+  subjectNamesAr: string[]
+) {
+  const parts = [gradeNameAr, ...sectionLabelsAr.filter(Boolean)];
+  const subjects = formatGroupedSubjects(subjectNamesAr);
+  if (subjects) parts.push(subjects);
+  return parts.join(" - ");
+}
+
+export function groupAssignmentsByGrade(rows: SubjectGrade[] | undefined): GradeAssignmentGroup[] {
+  const byGrade = new Map<string, SubjectGrade[]>();
+  for (const row of rows ?? []) {
+    if (!row.gradeId) continue;
+    if (!byGrade.has(row.gradeId)) byGrade.set(row.gradeId, []);
+    byGrade.get(row.gradeId)!.push(row);
+  }
+
+  const extraIds = [...byGrade.keys()].filter((id) => !GRADES.some((grade) => grade.id === id));
+  const orderedIds = [...GRADES.map((grade) => grade.id), ...extraIds].filter((id) => byGrade.has(id));
+
+  return orderedIds.map((gradeId) => {
+    const groupRows = byGrade.get(gradeId) ?? [];
+    const grade = GRADES.find((item) => item.id === gradeId);
+    const gradeNameAr = grade?.nameAr ?? gradeId;
+    const sectionIds = SECTIONS.map((section) => section.id).filter((id) =>
+      groupRows.some((row) => row.sectionId === id)
+    );
+    const extraSections = [...new Set(groupRows.map((row) => row.sectionId))].filter(
+      (id) => id && !sectionIds.includes(id as (typeof SECTIONS)[number]["id"])
+    );
+    const allSectionIds = [...sectionIds, ...extraSections];
+    const sectionLabelsAr = allSectionIds.map((id) => {
+      const section = SECTIONS.find((item) => item.id === id);
+      return section ? `شعبة ${section.ar}` : id;
+    });
+    const subjectNamesAr: string[] = [];
+    const seen = new Set<string>();
+    for (const row of groupRows) {
+      if (seen.has(row.subjectId)) continue;
+      seen.add(row.subjectId);
+      if (row.subjectNameAr) subjectNamesAr.push(row.subjectNameAr);
+    }
+    return {
+      gradeId,
+      gradeNameAr,
+      sectionIds: allSectionIds,
+      sectionLabelsAr,
+      subjectNamesAr,
+      rows: groupRows,
+      line: formatGradeAssignmentLine(gradeNameAr, sectionLabelsAr, subjectNamesAr),
+    };
+  });
+}
+
 export function compareArabicNames(a: string, b: string) {
   return a.localeCompare(b, "ar", { sensitivity: "base", numeric: true });
 }

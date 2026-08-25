@@ -11,7 +11,7 @@ import { StagesDialog } from "@/components/stages-dialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { classById } from "@/lib/catalog";
-import { formatGroupedSubjects, groupAssignments, isHomeworkOwner } from "@/lib/teachers";
+import { groupAssignmentsByGrade, isHomeworkOwner } from "@/lib/teachers";
 import type { Homework, LiveSnapshot, SubjectGrade } from "@/lib/types";
 
 export function TeacherDashboard({
@@ -46,11 +46,11 @@ export function TeacherDashboard({
           subjectNameAr: snapshot?.subjects.find((subject) => subject.id === teacher.subjectIds?.[0])?.nameAr ?? "",
         } satisfies SubjectGrade;
       });
-  const assignedGroups = groupAssignments(assignedRows);
+  const assignedGroups = groupAssignmentsByGrade(assignedRows);
 
-  async function removeAssignmentGroup(gradeId: string, sectionId: string) {
+  async function removeAssignmentGrade(gradeId: string) {
     const subjectsGrades = (teacher.subjectsGrades ?? assignedRows).filter(
-      (row) => !(row.gradeId === gradeId && row.sectionId === sectionId)
+      (row) => row.gradeId !== gradeId
     );
     const res = await fetch("/api/account", {
       method: "PUT",
@@ -132,24 +132,16 @@ export function TeacherDashboard({
                 <p className="text-sm text-blue-100">لم تُسند إليك مراحل بعد. أضف مرحلة للبدء بالنشر.</p>
               ) : (
                 assignedGroups.map((group) => {
-                  const cls = classById(group.key);
-                  const subjectsLabel = formatGroupedSubjects(group.subjectNamesAr);
                   return (
                     <div
-                      key={group.key}
+                      key={group.gradeId}
                       className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-3 text-slate-800 sm:px-4"
                     >
                       <div className="flex min-w-0 items-center gap-3">
                         <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
                           <GraduationCap className="size-4" />
                         </span>
-                        <div className="min-w-0">
-                          <p className="truncate font-bold">{cls?.gradeLabelAr ?? group.gradeId}</p>
-                          <p className="truncate text-xs text-slate-500">
-                            {cls?.sectionLabelAr}
-                            {subjectsLabel ? ` • ${subjectsLabel}` : ""}
-                          </p>
-                        </div>
+                        <p className="min-w-0 text-sm font-semibold leading-6">{group.line}</p>
                       </div>
                       <div className="flex shrink-0 items-center">
                         <button
@@ -165,7 +157,7 @@ export function TeacherDashboard({
                         </button>
                         <button
                           type="button"
-                          onClick={() => void removeAssignmentGroup(group.gradeId, group.sectionId)}
+                          onClick={() => void removeAssignmentGrade(group.gradeId)}
                           className="flex size-10 items-center justify-center rounded-full text-red-500 hover:bg-red-50"
                           aria-label="حذف"
                         >
