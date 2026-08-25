@@ -184,43 +184,6 @@ async function main() {
 
   const homework = [
     {
-      title: "Linear equations in two variables",
-      titleAr: "حل تمارين المعادلات الخطية في متغيرين",
-      details:
-        "Complete exercises 1–12. Show every step and bring the notebook tomorrow.",
-      detailsAr:
-        "حل التمارين من 1 إلى 12 في كتاب الرياضيات مع إظهار خطوات الحل كاملة، وتسليم الدفتر غداً.",
-      subjectId: "math",
-      classId: "m2-a",
-      classIds: ["m2-a"],
-      teacherId: "teacher-ahmed",
-      createdBy: "teacher-ahmed",
-      createdByNameAr: "أ. أحمد العراقي",
-      teacherName: "Ahmed Al-Iraqi",
-      teacherNameAr: "أ. أحمد العراقي",
-      dueAt: daysFromNow(3, 16),
-      status: "published",
-      attachments: [],
-    },
-    {
-      title: "Newton’s laws worksheet",
-      titleAr: "ورقة عمل قوانين نيوتن للحركة",
-      details: "Read pages 44–47 and answer the questions at the end of the lesson.",
-      detailsAr:
-        "اقرأ الصفحات 44 إلى 47 من كتاب الفيزياء وأجب عن الأسئلة في نهاية الدرس.",
-      subjectId: "physics",
-      classId: "m2-a",
-      classIds: ["m2-a"],
-      teacherId: "teacher-ahmed",
-      createdBy: "teacher-ahmed",
-      createdByNameAr: "أ. أحمد العراقي",
-      teacherName: "Ahmed Al-Iraqi",
-      teacherNameAr: "أ. أحمد العراقي",
-      dueAt: daysFromNow(5, 16),
-      status: "published",
-      attachments: [],
-    },
-    {
       title: "Al-Mutanabbi summary",
       titleAr: "تلخيص قصيدة المتنبي",
       details: "Write a one-page summary and list three rhetorical devices.",

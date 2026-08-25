@@ -10,7 +10,7 @@ import type {
 } from "@/lib/types";
 import { adminDb } from "@/lib/firebase-admin";
 import { deleteHomeworkFiles } from "@/lib/files";
-import { isHomeworkOwner, teacherClassIds } from "@/lib/teachers";
+import { isHomeworkOwner, sessionTeacherId, teacherClassIds } from "@/lib/teachers";
 import type { DocumentData, QueryDocumentSnapshot } from "firebase-admin/firestore";
 
 export const HOMEWORK_TTL_MS = 14 * 24 * 60 * 60 * 1000;
@@ -60,7 +60,8 @@ function mapHomework(
     : classId
       ? [classId]
       : [];
-  const teacherId = String(data.createdBy ?? data.teacherId ?? "");
+  const createdBy = String(data.createdBy ?? "");
+  const teacherId = String(data.teacherId ?? createdBy);
   return {
     id: doc.id,
     title: String(data.title ?? ""),
@@ -70,7 +71,7 @@ function mapHomework(
     subjectId: String(data.subjectId ?? ""),
     classId: classId || classIds[0] || "",
     classIds,
-    createdBy: teacherId,
+    createdBy,
     teacherId,
     teacherName: String(data.teacherName ?? ""),
     teacherNameAr: String(data.createdByNameAr ?? data.teacherNameAr ?? ""),
@@ -262,6 +263,7 @@ export async function createHomework(user: Profile, input: HomeworkInput) {
   }
   assertTeacherCanUseClasses(user, input.classIds);
 
+  const teacherId = sessionTeacherId(user);
   const now = new Date().toISOString();
   const ref = dbHomework().doc();
   await ref.set({
@@ -275,9 +277,9 @@ export async function createHomework(user: Profile, input: HomeworkInput) {
     dueAt: input.dueAt ?? null,
     attachments: input.attachments ?? [],
     status: input.status ?? "published",
-    createdBy: user.uid,
+    createdBy: teacherId,
     createdByNameAr: user.displayNameAr,
-    teacherId: user.uid,
+    teacherId,
     teacherName: user.displayName,
     teacherNameAr: user.displayNameAr,
     createdAt: now,

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocale } from "@/hooks/use-locale";
 import { dueBucket, formatDue, isFresh } from "@/lib/dates";
+import { isHomeworkOwner } from "@/lib/teachers";
 import type { DueBucket, Homework, Profile, SchoolClass, Subject } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +28,7 @@ export function HomeworkBoard({
   filter: DueBucket | "all";
   onFilter: (value: DueBucket | "all") => void;
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const visible =
     filter === "all"
       ? homework
@@ -46,6 +47,10 @@ export function HomeworkBoard({
   }
 
   async function remove(item: Homework) {
+    if (!isHomeworkOwner(profile, item)) {
+      toast.error(locale === "ar" ? "يمكنك حذف واجباتك فقط." : "You can only delete your own homework.");
+      return;
+    }
     const res = await fetch(`/api/homework/${item.id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = (await res.json()) as { error?: string };
@@ -115,7 +120,7 @@ function HomeworkCard({
   const mine = item.completions.find((row) => row.studentId === profile.uid);
   const done = mine?.status === "done";
   const classSizeHint = item.completions.filter((row) => row.status === "done").length;
-  const canDelete = profile.role === "admin" || profile.uid === item.teacherId;
+  const canDelete = isHomeworkOwner(profile, item);
   const title = locale === "ar" ? item.titleAr : item.title;
   const details = locale === "ar" ? item.detailsAr : item.details;
   const teacher = locale === "ar" ? item.teacherNameAr : item.teacherName;

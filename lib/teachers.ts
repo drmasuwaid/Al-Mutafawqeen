@@ -33,14 +33,19 @@ export function teacherClassIds(user: Profile) {
   return user.classIds ?? [];
 }
 
+export function sessionTeacherId(user: { uid: string; teacherId?: string } | null | undefined) {
+  if (!user) return "";
+  return (user.teacherId || user.uid || "").trim();
+}
+
 export function isHomeworkOwner(
-  user: Profile,
-  item: { createdBy?: string; teacherId?: string }
+  user: { uid: string; teacherId?: string } | null | undefined,
+  item: { createdBy?: string; teacherId?: string } | null | undefined
 ) {
-  const owner = item.createdBy || item.teacherId;
-  if (!owner) return false;
-  if (user.role === "admin") return true;
-  return user.uid === owner;
+  const currentId = sessionTeacherId(user);
+  const createdBy = String(item?.createdBy ?? "").trim();
+  if (!currentId || !createdBy) return false;
+  return createdBy === currentId;
 }
 
 export function newAssignmentId() {

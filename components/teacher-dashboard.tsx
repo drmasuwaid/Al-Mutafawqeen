@@ -65,7 +65,14 @@ export function TeacherDashboard({
     setProfile(data.profile);
   }
 
+  function assertOwnsHomework(item: Homework, action: "edit" | "delete") {
+    if (isHomeworkOwner(teacher, item)) return true;
+    toast.error(action === "delete" ? "يمكنك حذف واجباتك فقط." : "يمكنك تعديل واجباتك فقط.");
+    return false;
+  }
+
   async function removeHomework(item: Homework) {
+    if (!assertOwnsHomework(item, "delete")) return;
     const res = await fetch(`/api/homework/${item.id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = (await res.json()) as { error?: string };
@@ -219,8 +226,9 @@ export function TeacherDashboard({
                     key={item.id}
                     item={item}
                     subject={snapshot.subjects.find((row) => row.id === item.subjectId)}
-                    canManage={isHomeworkOwner(teacher, item)}
+                    currentUserId={teacher.teacherId || teacher.uid}
                     onEdit={(row) => {
+                      if (!assertOwnsHomework(row, "edit")) return;
                       setEditing(row);
                       setPublishOpen(true);
                     }}

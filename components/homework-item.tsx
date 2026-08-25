@@ -10,17 +10,20 @@ import { cn } from "@/lib/utils";
 export function HomeworkItem({
   item,
   subject,
-  canManage,
+  currentUserId,
   onEdit,
   onDelete,
 }: {
   item: Homework;
   subject?: Subject;
-  canManage?: boolean;
+  currentUserId?: string | null;
   onEdit?: (item: Homework) => void;
   onDelete?: (item: Homework) => void;
 }) {
   const classTags = item.classIds.length ? item.classIds : [item.classId];
+  const ownerId = (item.createdBy || "").trim();
+  const sessionId = (currentUserId || "").trim();
+  const canManage = Boolean(sessionId && ownerId && ownerId === sessionId);
 
   return (
     <article className="soft-card p-5">
