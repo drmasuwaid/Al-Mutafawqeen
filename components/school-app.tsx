@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { LandingView } from "@/components/landing-view";
+import { PrincipalDashboard } from "@/components/principal-dashboard";
 import { StudentBoard } from "@/components/student-board";
 import { TeacherDashboard } from "@/components/teacher-dashboard";
 import { useAuth } from "@/hooks/use-auth";
@@ -33,6 +34,10 @@ export function SchoolApp() {
     return (
       <StudentBoard snapshot={live.snapshot} error={live.error} onRetry={live.reload} />
     );
+  }
+
+  if (profile.role === "admin") {
+    return <PrincipalDashboard />;
   }
 
   return (

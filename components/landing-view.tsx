@@ -3,7 +3,7 @@
 import { GraduationCap, Presentation, ShieldCheck } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { StudentLoginDialog } from "@/components/student-login-dialog";
-import { TeacherLoginDialog } from "@/components/teacher-login-dialog";
+import { StaffAccessDialog } from "@/components/staff-access-dialog";
 import { useState } from "react";
 
 export function LandingView() {
@@ -40,10 +40,10 @@ export function LandingView() {
           />
           <RoleCard
             icon={<Presentation className="size-6" />}
-            title="واجهة الكادر التدريسي"
-            body="سجّل دخولك لنشر واجب جديد، وإدارة المراحل والشعب، وتعديل المحتوى أو حذفه."
-            action="تسجيل دخول المدرس ←"
-            badge="إدارة ونشر"
+            title="واجهة الكادر الإداري والتدريسي"
+            body="دخول مدير المدرسة لإدارة المدرسين، أو دخول المدرس بعد اختيار اسمه من القائمة الأبجدية."
+            action="الدخول إلى البوابة ←"
+            badge="إدارة وتدريس"
             badgeClass="bg-violet-50 text-violet-700"
             onClick={() => setTeacherOpen(true)}
           />
@@ -65,7 +65,7 @@ export function LandingView() {
       </div>
 
       <StudentLoginDialog open={studentOpen} onOpenChange={setStudentOpen} />
-      <TeacherLoginDialog open={teacherOpen} onOpenChange={setTeacherOpen} />
+      <StaffAccessDialog open={teacherOpen} onOpenChange={setTeacherOpen} />
     </div>
   );
 }

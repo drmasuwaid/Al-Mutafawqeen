@@ -10,6 +10,20 @@ function slugify(name: string) {
   return `sub-${Date.now().toString(36)}`;
 }
 
+export async function GET() {
+  const snap = await adminDb().collection("subjects").get();
+  const subjects = snap.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      name: String(data.name ?? data.nameAr ?? doc.id),
+      nameAr: String(data.nameAr ?? data.name ?? doc.id),
+      color: String(data.color ?? "#2563eb"),
+    };
+  });
+  return NextResponse.json({ subjects });
+}
+
 export async function POST(request: Request) {
   const user = await requireProfile();
   if (!user || user.role === "student") {

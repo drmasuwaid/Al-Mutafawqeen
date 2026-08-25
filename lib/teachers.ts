@@ -93,3 +93,33 @@ export function groupAssignments(rows: SubjectGrade[] | undefined): AssignmentGr
 export function formatGroupedSubjects(names: string[]) {
   return names.filter(Boolean).join("، ");
 }
+
+export function compareArabicNames(a: string, b: string) {
+  return a.localeCompare(b, "ar", { sensitivity: "base", numeric: true });
+}
+
+export function isPrincipal(user: { role?: string } | null | undefined) {
+  return user?.role === "admin";
+}
+
+export function assignmentsFromSelections(
+  gradeIds: string[],
+  sectionIds: string[],
+  subjects: { id: string; nameAr: string }[]
+): SubjectGrade[] {
+  const rows: SubjectGrade[] = [];
+  for (const gradeId of gradeIds) {
+    for (const sectionId of sectionIds) {
+      for (const subject of subjects) {
+        rows.push({
+          id: `${gradeId}-${sectionId}-${subject.id}`,
+          gradeId,
+          sectionId,
+          subjectId: subject.id,
+          subjectNameAr: subject.nameAr,
+        });
+      }
+    }
+  }
+  return rows;
+}

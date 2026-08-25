@@ -81,6 +81,13 @@ export type Homework = {
   completions: Completion[];
 };
 
+export type TeacherSummary = {
+  id: string;
+  displayNameAr: string;
+  username: string;
+  subjectsGrades: SubjectGrade[];
+};
+
 export type LiveSnapshot = {
   homework: Homework[];
   classes: SchoolClass[];
