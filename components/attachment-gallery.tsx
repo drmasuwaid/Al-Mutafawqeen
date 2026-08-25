@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Download, FileText, X } from "lucide-react";
-import { attachmentUrl } from "@/lib/attachment-url";
+import { attachmentFrameClass, attachmentUrl } from "@/lib/attachment-url";
 import type { Attachment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +27,10 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
                 key={`${file.name}-${index}`}
                 type="button"
                 onClick={() => setImageIndex(index)}
-                className="overflow-hidden rounded-lg ring-1 ring-slate-200"
+                className={cn(
+                  "overflow-hidden rounded-lg bg-white",
+                  attachmentFrameClass(file)
+                )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -47,7 +50,10 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
           {docs.map((file, index) => (
             <div
               key={`${file.name}-${index}`}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2"
+              className={cn(
+                "flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2",
+                attachmentFrameClass(file)
+              )}
             >
               <span className="flex min-w-0 items-center gap-2 text-sm text-slate-700">
                 <FileText className="size-4 shrink-0 text-blue-500" />
@@ -83,7 +89,7 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
           downloadHref={attachmentUrl(current, { download: true })}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={attachmentUrl(current)} alt={current.name} className="max-h-[70vh] max-w-full object-contain" />
+          <img src={attachmentUrl(current)} alt={current.name} className={cn("max-h-[70vh] max-w-full object-contain", attachmentFrameClass(current))} />
         </Lightbox>
       ) : null}
 
@@ -96,7 +102,7 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
           <iframe
             title={pdf.name}
             src={attachmentUrl(pdf)}
-            className="h-[70vh] w-full rounded-xl bg-white"
+            className={cn("h-[70vh] w-full rounded-xl bg-white", attachmentFrameClass(pdf))}
           />
         </Lightbox>
       ) : null}

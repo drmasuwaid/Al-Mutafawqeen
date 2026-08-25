@@ -10,9 +10,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { NativeSelect } from "@/components/native-select";
+import { attachmentFrameClass } from "@/lib/attachment-url";
 import { classById, parseClassId } from "@/lib/catalog";
 import { teacherClassIds } from "@/lib/teachers";
 import type { Attachment, Homework, Profile, Subject } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const MAX_FILE = 8 * 1024 * 1024;
 
@@ -276,9 +278,15 @@ export function PublishDialog({
               }}
             />
           </label>
-          <ul className="space-y-1 text-sm text-slate-600">
+          <ul className="space-y-2 text-sm text-slate-600">
             {existingFiles.map((file, index) => (
-              <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-2">
+              <li
+                key={`${file.name}-${index}`}
+                className={cn(
+                  "flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2",
+                  attachmentFrameClass(file)
+                )}
+              >
                 <span className="truncate">{file.name}</span>
                 <button type="button" className="text-red-500" onClick={() => setExistingFiles((current) => current.filter((_, i) => i !== index))}>
                   حذف
@@ -286,7 +294,13 @@ export function PublishDialog({
               </li>
             ))}
             {pendingFiles.map((file, index) => (
-              <li key={`${file.name}-new-${index}`} className="flex items-center justify-between gap-2">
+              <li
+                key={`${file.name}-new-${index}`}
+                className={cn(
+                  "flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2",
+                  attachmentFrameClass(file)
+                )}
+              >
                 <span className="truncate">{file.name} (جديد)</span>
                 <button type="button" className="text-red-500" onClick={() => setPendingFiles((current) => current.filter((_, i) => i !== index))}>
                   حذف

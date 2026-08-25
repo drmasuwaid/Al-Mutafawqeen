@@ -14,6 +14,19 @@ import { GRADES, SECTIONS, classById } from "@/lib/catalog";
 import { newAssignmentId } from "@/lib/teachers";
 import type { Profile, Subject, SubjectGrade } from "@/lib/types";
 
+type PickedSubject = { id: string; nameAr: string };
+
+function uniqueSubjects(items: PickedSubject[]) {
+  const seen = new Set<string>();
+  const next: PickedSubject[] = [];
+  for (const item of items) {
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    next.push(item);
+  }
+  return next;
+}
+
 export function StagesDialog({
   open,
   onOpenChange,
@@ -32,17 +45,31 @@ export function StagesDialog({
   const [rows, setRows] = useState<SubjectGrade[]>(profile.subjectsGrades ?? []);
   const [gradeId, setGradeId] = useState("");
   const [sectionId, setSectionId] = useState("");
-  const [subjectId, setSubjectId] = useState("");
-  const [customSubject, setCustomSubject] = useState("");
-  const [editId, setEditId] = useState<string | null>(null);
+  const [pickerSubjectId, setPickerSubjectId] = useState("");
+  const [pickedSubjects, setPickedSubjects] = useState<PickedSubject[]>([]);
+  const [editGroup, setEditGroup] = useState<{ gradeId: string; sectionId: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  function fill(row?: SubjectGrade | null) {
-    setEditId(row?.id ?? null);
-    setGradeId(row?.gradeId ?? "");
-    setSectionId(row?.sectionId ?? "");
-    setSubjectId(row?.subjectId ?? "");
-    setCustomSubject("");
+  function resetForm() {
+    setEditGroup(null);
+    setGradeId("");
+    setSectionId("");
+    setPickerSubjectId("");
+    setPickedSubjects([]);
+  }
+
+  function startEdit(row: SubjectGrade, source: SubjectGrade[]) {
+    setEditGroup({ gradeId: row.gradeId, sectionId: row.sectionId });
+    setGradeId(row.gradeId);
+    setSectionId(row.sectionId);
+    setPickerSubjectId("");
+    setPickedSubjects(
+      uniqueSubjects(
+        source
+          .filter((item) => item.gradeId === row.gradeId && item.sectionId === row.sectionId)
+          .map((item) => ({ id: item.subjectId, nameAr: item.subjectNameAr }))
+      )
+    );
   }
 
   useEffect(() => {
@@ -50,64 +77,81 @@ export function StagesDialog({
     const current = profile.subjectsGrades ?? [];
     setRows(current);
     const target = editingId ? current.find((row) => row.id === editingId) : null;
-    fill(target);
+    if (target) startEdit(target, current);
+    else resetForm();
   }, [open, editingId, profile.subjectsGrades]);
 
-  async function resolveSubject() {
-    if (customSubject.trim()) {
-      const res = await fetch("/api/subjects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nameAr: customSubject.trim() }),
-      });
-      const data = (await res.json()) as { error?: string; subject?: Subject };
-      if (!res.ok || !data.subject) throw new Error(data.error || "تعذر إضافة المادة");
-      return { id: data.subject.id, nameAr: data.subject.nameAr };
+  function addPickedSubject() {
+    if (!pickerSubjectId) {
+      toast.error("اختر المادة الدراسية أولاً.");
+      return;
     }
-    const selected = subjects.find((item) => item.id === subjectId);
-    if (!selected) throw new Error("اختر المادة الدراسية.");
-    return { id: selected.id, nameAr: selected.nameAr };
+    const selected = subjects.find((item) => item.id === pickerSubjectId);
+    if (!selected) {
+      toast.error("اختر المادة الدراسية.");
+      return;
+    }
+    if (pickedSubjects.some((item) => item.id === selected.id)) {
+      toast.error("هذه المادة مضافة مسبقاً.");
+      return;
+    }
+    setPickedSubjects((current) => [...current, { id: selected.id, nameAr: selected.nameAr }]);
+    setPickerSubjectId("");
   }
 
-  function addOrUpdate(next: SubjectGrade) {
-    const exists = rows.some(
-      (row) =>
-        row.id !== next.id &&
-        row.gradeId === next.gradeId &&
-        row.sectionId === next.sectionId &&
-        row.subjectId === next.subjectId
-    );
-    if (exists) throw new Error("هذه المرحلة والشعبة والمادة مضافة مسبقاً.");
-    setRows((current) => {
-      const index = current.findIndex((row) => row.id === next.id);
-      if (index >= 0) {
-        const copy = [...current];
-        copy[index] = next;
-        return copy;
-      }
-      return [...current, next];
-    });
+  function removePickedSubject(id: string) {
+    setPickedSubjects((current) => current.filter((item) => item.id !== id));
   }
 
-  async function submitRow() {
+  function submitRow() {
     if (!gradeId || !sectionId) {
       toast.error("اختر الصف والشعبة.");
       return;
     }
-    try {
-      const subject = await resolveSubject();
-      addOrUpdate({
-        id: editId || newAssignmentId(),
+    if (!pickedSubjects.length) {
+      toast.error("أضف مادة واحدة على الأقل.");
+      return;
+    }
+
+    const previousIds = new Map<string, string>();
+    let next = [...rows];
+    if (editGroup) {
+      for (const row of rows) {
+        if (row.gradeId === editGroup.gradeId && row.sectionId === editGroup.sectionId) {
+          previousIds.set(row.subjectId, row.id);
+        }
+      }
+      next = next.filter(
+        (row) => !(row.gradeId === editGroup.gradeId && row.sectionId === editGroup.sectionId)
+      );
+    }
+
+    let added = 0;
+    for (const subject of pickedSubjects) {
+      const duplicate = next.some(
+        (row) =>
+          row.gradeId === gradeId && row.sectionId === sectionId && row.subjectId === subject.id
+      );
+      if (duplicate) continue;
+      next.push({
+        id: previousIds.get(subject.id) || newAssignmentId(),
         gradeId,
         sectionId,
         subjectId: subject.id,
         subjectNameAr: subject.nameAr,
       });
-      fill(null);
-      toast.success(editId ? "تم تحديث المرحلة." : "تمت إضافة المرحلة.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "تعذر الحفظ");
+      added += 1;
     }
+
+    if (!added) {
+      toast.error("هذه المواد مضافة مسبقاً لهذه المرحلة والشعبة.");
+      return;
+    }
+
+    const wasEdit = Boolean(editGroup);
+    setRows(next);
+    resetForm();
+    toast.success(wasEdit ? "تم تحديث المرحلة." : "تمت إضافة المرحلة.");
   }
 
   async function saveAll() {
@@ -130,6 +174,10 @@ export function StagesDialog({
     }
   }
 
+  const availableSubjects = subjects.filter(
+    (subject) => !pickedSubjects.some((item) => item.id === subject.id)
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-lg" showCloseButton={false}>
@@ -142,7 +190,7 @@ export function StagesDialog({
         </button>
         <DialogTitle className="text-xl font-extrabold">إضافة / تعديل المراحل</DialogTitle>
         <DialogDescription>
-          اختر الصف والشعبة والمادة من القوائم، أو أضف مادة جديدة ثم احفظ.
+          اختر الصف والشعبة، ثم أضف مادة أو أكثر من القائمة إلى الصندوق أدناه واحفظ.
         </DialogDescription>
 
         <div className="space-y-3">
@@ -168,38 +216,65 @@ export function StagesDialog({
               ))}
             </NativeSelect>
           </label>
-          <label className="block space-y-2">
+
+          <div className="space-y-2">
             <span className="text-sm font-medium text-slate-600">المادة الدراسية</span>
-            <NativeSelect
-              value={subjectId}
-              onChange={(event) => {
-                setSubjectId(event.target.value);
-                setCustomSubject("");
-              }}
-            >
-              <option value="">-- اختر المادة --</option>
-              {subjects.map((subject) => (
-                <option key={subject.id} value={subject.id}>
-                  {subject.nameAr}
-                </option>
-              ))}
-            </NativeSelect>
-          </label>
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-600">أو أضف مادة جديدة</span>
-            <input
-              className="field-input w-full"
-              placeholder="مثال: علم الأرض"
-              value={customSubject}
-              onChange={(event) => setCustomSubject(event.target.value)}
-            />
-          </label>
+            <div className="flex items-stretch gap-2">
+              <div className="min-w-0 flex-1">
+                <NativeSelect
+                  value={pickerSubjectId}
+                  onChange={(event) => setPickerSubjectId(event.target.value)}
+                >
+                  <option value="">-- اختر المادة --</option>
+                  {availableSubjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.nameAr}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </div>
+              <button
+                type="button"
+                onClick={addPickedSubject}
+                className="h-12 shrink-0 rounded-xl bg-[#3b82f6] px-4 text-sm font-bold text-white hover:bg-[#2563eb]"
+              >
+                إضافة مادة
+              </button>
+            </div>
+            <div className="min-h-[3.5rem] rounded-xl border border-slate-200 bg-slate-50 p-2">
+              {pickedSubjects.length === 0 ? (
+                <p className="px-2 py-2 text-sm text-slate-400">
+                  لم تُضف مواد بعد. اختر مادة من القائمة ثم اضغط «إضافة مادة».
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {pickedSubjects.map((subject) => (
+                    <span
+                      key={subject.id}
+                      className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-sm font-semibold text-blue-800 ring-1 ring-blue-200"
+                    >
+                      {subject.nameAr}
+                      <button
+                        type="button"
+                        className="flex size-5 items-center justify-center rounded-full text-blue-500 hover:bg-blue-100 hover:text-blue-800"
+                        aria-label={`حذف ${subject.nameAr}`}
+                        onClick={() => removePickedSubject(subject.id)}
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           <button
             type="button"
-            onClick={() => void submitRow()}
+            onClick={submitRow}
             className="h-12 w-full rounded-xl bg-[#3b82f6] text-sm font-bold text-white"
           >
-            {editId ? "حفظ تعديل المرحلة" : "إضافة المرحلة إلى القائمة"}
+            {editGroup ? "حفظ تعديل المرحلة" : "إضافة المرحلة إلى القائمة"}
           </button>
         </div>
 
@@ -219,7 +294,11 @@ export function StagesDialog({
                     </p>
                   </div>
                   <div className="flex shrink-0">
-                    <button type="button" className="flex size-10 items-center justify-center text-blue-600" onClick={() => fill(row)}>
+                    <button
+                      type="button"
+                      className="flex size-10 items-center justify-center text-blue-600"
+                      onClick={() => startEdit(row, rows)}
+                    >
                       <Pencil className="size-4" />
                     </button>
                     <button
