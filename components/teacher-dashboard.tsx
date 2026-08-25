@@ -11,7 +11,7 @@ import { StagesDialog } from "@/components/stages-dialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { classById } from "@/lib/catalog";
-import { isHomeworkOwner } from "@/lib/teachers";
+import { formatGroupedSubjects, groupAssignments, isHomeworkOwner } from "@/lib/teachers";
 import type { Homework, LiveSnapshot, SubjectGrade } from "@/lib/types";
 
 export function TeacherDashboard({
@@ -34,7 +34,7 @@ export function TeacherDashboard({
 
   if (!profile) return null;
   const teacher = profile;
-  const assigned = teacher.subjectsGrades?.length
+  const assignedRows = teacher.subjectsGrades?.length
     ? teacher.subjectsGrades
     : (teacher.classIds ?? []).map((id) => {
         const cls = classById(id);
@@ -46,9 +46,12 @@ export function TeacherDashboard({
           subjectNameAr: snapshot?.subjects.find((subject) => subject.id === teacher.subjectIds?.[0])?.nameAr ?? "",
         } satisfies SubjectGrade;
       });
+  const assignedGroups = groupAssignments(assignedRows);
 
-  async function removeAssignment(id: string) {
-    const subjectsGrades = (teacher.subjectsGrades ?? assigned).filter((row) => row.id !== id);
+  async function removeAssignmentGroup(gradeId: string, sectionId: string) {
+    const subjectsGrades = (teacher.subjectsGrades ?? assignedRows).filter(
+      (row) => !(row.gradeId === gradeId && row.sectionId === sectionId)
+    );
     const res = await fetch("/api/account", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -118,14 +121,15 @@ export function TeacherDashboard({
           <div className="mt-6">
             <p className="mb-3 text-sm text-blue-100">المراحل والشعب المسندة إليك:</p>
             <div className="flex flex-col gap-2">
-              {assigned.length === 0 ? (
+              {assignedGroups.length === 0 ? (
                 <p className="text-sm text-blue-100">لم تُسند إليك مراحل بعد. أضف مرحلة للبدء بالنشر.</p>
               ) : (
-                assigned.map((item) => {
-                  const cls = classById(`${item.gradeId}-${item.sectionId}`);
+                assignedGroups.map((group) => {
+                  const cls = classById(group.key);
+                  const subjectsLabel = formatGroupedSubjects(group.subjectNamesAr);
                   return (
                     <div
-                      key={item.id}
+                      key={group.key}
                       className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-3 text-slate-800 sm:px-4"
                     >
                       <div className="flex min-w-0 items-center gap-3">
@@ -133,10 +137,10 @@ export function TeacherDashboard({
                           <GraduationCap className="size-4" />
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate font-bold">{cls?.gradeLabelAr ?? item.gradeId}</p>
+                          <p className="truncate font-bold">{cls?.gradeLabelAr ?? group.gradeId}</p>
                           <p className="truncate text-xs text-slate-500">
                             {cls?.sectionLabelAr}
-                            {item.subjectNameAr ? ` · ${item.subjectNameAr}` : ""}
+                            {subjectsLabel ? ` • ${subjectsLabel}` : ""}
                           </p>
                         </div>
                       </div>
@@ -144,7 +148,7 @@ export function TeacherDashboard({
                         <button
                           type="button"
                           onClick={() => {
-                            setEditingAssignment(item.id);
+                            setEditingAssignment(group.rows[0]?.id ?? null);
                             setStagesOpen(true);
                           }}
                           className="flex size-10 items-center justify-center rounded-full text-blue-600 hover:bg-blue-50"
@@ -154,7 +158,7 @@ export function TeacherDashboard({
                         </button>
                         <button
                           type="button"
-                          onClick={() => void removeAssignment(item.id)}
+                          onClick={() => void removeAssignmentGroup(group.gradeId, group.sectionId)}
                           className="flex size-10 items-center justify-center rounded-full text-red-500 hover:bg-red-50"
                           aria-label="حذف"
                         >

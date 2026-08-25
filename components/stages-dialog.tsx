@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { NativeSelect } from "@/components/native-select";
 import { GRADES, SECTIONS, classById } from "@/lib/catalog";
-import { newAssignmentId } from "@/lib/teachers";
+import { formatGroupedSubjects, groupAssignments, newAssignmentId } from "@/lib/teachers";
 import type { Profile, Subject, SubjectGrade } from "@/lib/types";
 
 type PickedSubject = { id: string; nameAr: string };
@@ -177,6 +177,7 @@ export function StagesDialog({
   const availableSubjects = subjects.filter(
     (subject) => !pickedSubjects.some((item) => item.id === subject.id)
   );
+  const groups = groupAssignments(rows);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -280,31 +281,49 @@ export function StagesDialog({
 
         <div className="space-y-2">
           <p className="text-sm font-bold text-slate-700">المراحل المسندة</p>
-          {rows.length === 0 ? (
+          {groups.length === 0 ? (
             <p className="text-sm text-slate-400">لا توجد مراحل بعد.</p>
           ) : (
-            rows.map((row) => {
-              const cls = classById(`${row.gradeId}-${row.sectionId}`);
+            groups.map((group) => {
+              const cls = classById(group.key);
+              const subjectsLabel = formatGroupedSubjects(group.subjectNamesAr);
               return (
-                <div key={row.id} className="flex items-center justify-between gap-2 rounded-2xl bg-slate-50 px-3 py-2">
+                <div key={group.key} className="flex items-center justify-between gap-2 rounded-2xl bg-slate-50 px-3 py-2">
                   <div className="min-w-0">
                     <p className="truncate font-bold text-slate-800">{cls?.gradeLabelAr}</p>
                     <p className="truncate text-xs text-slate-500">
-                      {cls?.sectionLabelAr} · {row.subjectNameAr}
+                      {cls?.sectionLabelAr}
+                      {subjectsLabel ? ` • ${subjectsLabel}` : ""}
                     </p>
                   </div>
                   <div className="flex shrink-0">
                     <button
                       type="button"
                       className="flex size-10 items-center justify-center text-blue-600"
-                      onClick={() => startEdit(row, rows)}
+                      onClick={() => {
+                        const first = group.rows[0];
+                        if (first) startEdit(first, rows);
+                      }}
                     >
                       <Pencil className="size-4" />
                     </button>
                     <button
                       type="button"
                       className="flex size-10 items-center justify-center text-red-500"
-                      onClick={() => setRows((current) => current.filter((item) => item.id !== row.id))}
+                      onClick={() => {
+                        setRows((current) =>
+                          current.filter(
+                            (item) =>
+                              !(item.gradeId === group.gradeId && item.sectionId === group.sectionId)
+                          )
+                        );
+                        if (
+                          editGroup?.gradeId === group.gradeId &&
+                          editGroup?.sectionId === group.sectionId
+                        ) {
+                          resetForm();
+                        }
+                      }}
                     >
                       <Trash2 className="size-4" />
                     </button>

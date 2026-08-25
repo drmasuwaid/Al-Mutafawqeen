@@ -46,3 +46,45 @@ export function isHomeworkOwner(
 export function newAssignmentId() {
   return `sg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+
+export type AssignmentGroup = {
+  key: string;
+  gradeId: string;
+  sectionId: string;
+  rows: SubjectGrade[];
+  subjectNamesAr: string[];
+};
+
+export function groupAssignments(rows: SubjectGrade[] | undefined): AssignmentGroup[] {
+  const map = new Map<string, SubjectGrade[]>();
+  const order: string[] = [];
+  for (const row of rows ?? []) {
+    const key = classIdFor(row.gradeId, row.sectionId);
+    if (!map.has(key)) {
+      map.set(key, []);
+      order.push(key);
+    }
+    map.get(key)!.push(row);
+  }
+  return order.map((key) => {
+    const groupRows = map.get(key) ?? [];
+    const names: string[] = [];
+    const seen = new Set<string>();
+    for (const row of groupRows) {
+      if (seen.has(row.subjectId)) continue;
+      seen.add(row.subjectId);
+      names.push(row.subjectNameAr);
+    }
+    return {
+      key,
+      gradeId: groupRows[0]?.gradeId ?? "",
+      sectionId: groupRows[0]?.sectionId ?? "",
+      rows: groupRows,
+      subjectNamesAr: names,
+    };
+  });
+}
+
+export function formatGroupedSubjects(names: string[]) {
+  return names.filter(Boolean).join("، ");
+}
