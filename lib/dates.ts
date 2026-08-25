@@ -33,6 +33,10 @@ export function toDateTimeLocal(value: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+export function isFresh(createdAt: string, withinMs = 120_000) {
+  return Date.now() - new Date(createdAt).getTime() < withinMs;
+}
+
 export function formatClock(value: string, locale: "en" | "ar") {
   return new Intl.DateTimeFormat(locale === "ar" ? "ar-IQ" : "en-GB", {
     hour: "2-digit",
@@ -40,3 +44,4 @@ export function formatClock(value: string, locale: "en" | "ar") {
     second: "2-digit",
   }).format(new Date(value));
 }
+

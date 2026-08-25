@@ -20,9 +20,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     fetch("/api/auth/me")
       .then(async (res) => {
-        if (!res.ok) return null;
         const data = (await res.json()) as { profile: Profile | null };
-        return data.profile;
+        return data.profile ?? null;
       })
       .then((next) => {
         if (!cancelled) setProfile(next);

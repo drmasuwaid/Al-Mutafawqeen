@@ -107,6 +107,11 @@ export function SchoolApp() {
                   profile={profile}
                   classes={snapshot.classes}
                   subjects={snapshot.subjects}
+                  onPublished={() => {
+                    setFilter("all");
+                    setTab("homework");
+                    live.reload();
+                  }}
                 />
               </div>
             </TabsContent>

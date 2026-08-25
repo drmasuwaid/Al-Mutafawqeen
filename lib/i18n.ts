@@ -56,6 +56,7 @@ export const copy = {
     details: "Instructions",
     welcome: "Welcome back",
     boardIntro: "This board is synced through Firebase. Open a second window with another role to watch assignments arrive live.",
+    justNow: "Just in",
   },
   ar: {
     school: "مدرسة المتفوقين الثانوية",
@@ -112,6 +113,7 @@ export const copy = {
     details: "التعليمات",
     welcome: "أهلاً بعودتك",
     boardIntro: "هذه اللوحة تتزامن عبر Firebase. افتح نافذة ثانية بحساب آخر لترى الواجبات تصل مباشرة.",
+    justNow: "وصل الآن",
   },
 } as const;
 

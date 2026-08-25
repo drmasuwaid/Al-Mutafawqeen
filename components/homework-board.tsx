@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocale } from "@/hooks/use-locale";
-import { dueBucket, formatDue } from "@/lib/dates";
+import { dueBucket, formatDue, isFresh } from "@/lib/dates";
 import type { DueBucket, Homework, Profile, SchoolClass, Subject } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -119,7 +119,7 @@ function HomeworkCard({
   const teacher = locale === "ar" ? item.teacherNameAr : item.teacherName;
 
   return (
-    <Card className="overflow-hidden py-0 ring-teal-900/8">
+    <Card className={cn("overflow-hidden py-0 ring-teal-900/8", isFresh(item.createdAt) && "ring-2 ring-teal-700")}>
       <div className="flex">
         <div className="w-1.5 shrink-0" style={{ background: subject?.color ?? "#0f766e" }} />
         <div className="min-w-0 flex-1">
@@ -130,6 +130,9 @@ function HomeworkCard({
                   <Badge variant="secondary">{locale === "ar" ? subject?.nameAr : subject?.name}</Badge>
                   <Badge variant="outline">{locale === "ar" ? classItem?.nameAr : classItem?.name}</Badge>
                   <DueBadge bucket={bucket} label={t[bucket]} />
+                  {isFresh(item.createdAt) ? (
+                    <Badge className="bg-teal-700 text-white">{t.justNow}</Badge>
+                  ) : null}
                 </div>
                 <CardTitle className="text-lg">{title}</CardTitle>
               </div>

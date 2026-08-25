@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
       unsubscribe = subscribeLiveSnapshot(user, {
         onData: (snapshot) => send("snapshot", snapshot),
-        onError: (error) => send("error", { message: error.message }),
+        onError: (error) => send("sync-error", { message: error.message }),
       });
 
       const ping = setInterval(() => {

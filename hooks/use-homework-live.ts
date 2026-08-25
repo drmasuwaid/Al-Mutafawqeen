@@ -41,7 +41,7 @@ export function useHomeworkLive(enabled: boolean) {
           setState("live");
           setError(null);
         });
-        source.addEventListener("error", (event) => {
+        source.addEventListener("sync-error", (event) => {
           const messageEvent = event as MessageEvent;
           if (typeof messageEvent.data === "string") {
             try {
@@ -53,12 +53,13 @@ export function useHomeworkLive(enabled: boolean) {
           }
         });
         source.onerror = () => {
-          setState("reconnecting");
-          source.close();
-          if (!cancelled) {
-            retryTimer = window.setTimeout(() => {
-              void connect();
-            }, 1500);
+          if (source.readyState === EventSource.CLOSED) {
+            setState("reconnecting");
+            if (!cancelled) {
+              retryTimer = window.setTimeout(() => {
+                void connect();
+              }, 1500);
+            }
           }
         };
       } catch (err) {
