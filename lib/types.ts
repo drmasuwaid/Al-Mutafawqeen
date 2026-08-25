@@ -6,8 +6,17 @@ export type CompletionStatus = "pending" | "done";
 
 export type DueBucket = "overdue" | "today" | "soon" | "upcoming";
 
+export type SubjectGrade = {
+  id: string;
+  gradeId: string;
+  sectionId: string;
+  subjectId: string;
+  subjectNameAr: string;
+};
+
 export type Profile = {
   uid: string;
+  teacherId?: string;
   email: string;
   username?: string;
   displayName: string;
@@ -16,6 +25,7 @@ export type Profile = {
   classId?: string;
   classIds?: string[];
   subjectIds?: string[];
+  subjectsGrades?: SubjectGrade[];
 };
 
 export type SchoolClass = {
@@ -46,6 +56,7 @@ export type Attachment = {
   name: string;
   type: string;
   size: number;
+  storagePath?: string;
   dataUrl?: string;
 };
 
@@ -58,6 +69,7 @@ export type Homework = {
   subjectId: string;
   classId: string;
   classIds: string[];
+  createdBy: string;
   teacherId: string;
   teacherName: string;
   teacherNameAr: string;

@@ -19,7 +19,7 @@ export function LandingView() {
           <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
             المنصة الذكية المتكاملة
           </span>
-          <h2 className="mt-5 text-3xl font-extrabold text-slate-900 sm:text-4xl">
+          <h2 className="mt-5 text-2xl font-extrabold text-slate-900 sm:text-4xl">
             مرحباً بك في منصة الواجبات
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-500 sm:text-base">
@@ -49,7 +49,7 @@ export function LandingView() {
           />
         </section>
 
-        <aside className="mt-6 flex items-center gap-4 rounded-[22px] bg-emerald-50 px-5 py-4 ring-1 ring-emerald-100">
+        <aside className="mt-6 flex flex-col items-start gap-4 rounded-[22px] bg-emerald-50 px-4 py-4 ring-1 ring-emerald-100 sm:flex-row sm:items-center sm:px-5">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
             <ShieldCheck className="size-5" />
           </span>

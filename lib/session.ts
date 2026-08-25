@@ -2,7 +2,8 @@ import { cookies } from "next/headers";
 import { jwtVerify, SignJWT } from "jose";
 import { adminDb } from "@/lib/firebase-admin";
 import { classById } from "@/lib/catalog";
-import type { Profile, Role } from "@/lib/types";
+import { classIdsFromAssignments, subjectIdsFromAssignments } from "@/lib/teachers";
+import type { Profile, Role, SubjectGrade } from "@/lib/types";
 
 export const SESSION_COOKIE = "stf_session";
 
@@ -71,35 +72,68 @@ export function guestProfile(classId: string): Profile {
   };
 }
 
+function mapSubjectGrades(value: unknown): SubjectGrade[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    const row = item as Record<string, unknown>;
+    return {
+      id: String(row.id ?? ""),
+      gradeId: String(row.gradeId ?? ""),
+      sectionId: String(row.sectionId ?? ""),
+      subjectId: String(row.subjectId ?? ""),
+      subjectNameAr: String(row.subjectNameAr ?? ""),
+    };
+  });
+}
+
 export async function loadProfile(uid: string): Promise<Profile | null> {
-  const snap = await adminDb().doc(`users/${uid}`).get();
-  if (!snap.exists) return null;
-  const data = snap.data() ?? {};
+  const [userSnap, teacherSnap] = await Promise.all([
+    adminDb().doc(`users/${uid}`).get(),
+    adminDb().doc(`teachers/${uid}`).get(),
+  ]);
+  if (!userSnap.exists && !teacherSnap.exists) return null;
+  const user = userSnap.data() ?? {};
+  const teacher = teacherSnap.data() ?? {};
+  const subjectsGrades = mapSubjectGrades(teacher.subjectsGrades ?? user.subjectsGrades);
+  const role = (teacher.role || user.role || "teacher") as Role;
+  const displayNameAr = String(teacher.name || user.displayNameAr || "");
   return {
     uid,
-    email: String(data.email ?? ""),
-    username: data.username ? String(data.username) : undefined,
-    displayName: String(data.displayName ?? ""),
-    displayNameAr: String(data.displayNameAr ?? ""),
-    role: data.role as Role,
-    classId: data.classId ? String(data.classId) : undefined,
-    classIds: Array.isArray(data.classIds)
-      ? data.classIds.map(String)
-      : undefined,
-    subjectIds: Array.isArray(data.subjectIds)
-      ? data.subjectIds.map(String)
-      : undefined,
+    teacherId: role === "student" ? undefined : uid,
+    email: String(teacher.email || user.email || ""),
+    username: String(teacher.username || user.username || "") || undefined,
+    displayName: String(teacher.nameEn || user.displayName || displayNameAr),
+    displayNameAr,
+    role,
+    classId: user.classId ? String(user.classId) : undefined,
+    classIds: subjectsGrades.length
+      ? classIdsFromAssignments(subjectsGrades)
+      : Array.isArray(user.classIds)
+        ? user.classIds.map(String)
+        : undefined,
+    subjectIds: subjectsGrades.length
+      ? subjectIdsFromAssignments(subjectsGrades)
+      : Array.isArray(user.subjectIds)
+        ? user.subjectIds.map(String)
+        : undefined,
+    subjectsGrades,
   };
 }
 
 export async function findUserByUsername(username: string): Promise<Profile | null> {
-  const snap = await adminDb()
+  const users = await adminDb()
     .collection("users")
     .where("username", "==", username)
     .limit(1)
     .get();
-  if (snap.empty) return null;
-  return loadProfile(snap.docs[0].id);
+  if (!users.empty) return loadProfile(users.docs[0].id);
+  const teachers = await adminDb()
+    .collection("teachers")
+    .where("username", "==", username)
+    .limit(1)
+    .get();
+  if (!teachers.empty) return loadProfile(teachers.docs[0].id);
+  return null;
 }
 
 export async function requireProfile(): Promise<Profile | null> {

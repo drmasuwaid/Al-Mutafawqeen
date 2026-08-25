@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireProfile } from "@/lib/session";
 import { createHomework, loadLiveSnapshot } from "@/lib/homework";
+import { saveHomeworkFiles } from "@/lib/files";
+import { adminDb } from "@/lib/firebase-admin";
 import type { Attachment } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -15,43 +17,62 @@ export async function GET() {
   return NextResponse.json(snapshot);
 }
 
+async function parsePublishBody(request: Request) {
+  const contentType = request.headers.get("content-type") || "";
+  if (contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    const payload = JSON.parse(String(form.get("payload") || "{}")) as Record<string, unknown>;
+    const files = form.getAll("files").filter((item): item is File => item instanceof File);
+    return { payload, files };
+  }
+  return {
+    payload: (await request.json()) as Record<string, unknown>,
+    files: [] as File[],
+  };
+}
+
 export async function POST(request: Request) {
   const user = await requireProfile();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
-    const body = (await request.json()) as {
-      title?: string;
-      titleAr?: string;
-      details?: string;
-      detailsAr?: string;
-      subjectId?: string;
-      classId?: string;
-      classIds?: string[];
-      dueAt?: string | null;
-      attachments?: Attachment[];
-    };
-    const titleAr = (body.titleAr || body.title || "").trim();
-    const detailsAr = (body.detailsAr || body.details || "").trim();
-    const classIds = (body.classIds?.length ? body.classIds : body.classId ? [body.classId] : [])
-      .map((id) => id.trim())
-      .filter(Boolean);
-    if (!titleAr || !body.subjectId || !classIds.length) {
+    const { payload, files } = await parsePublishBody(request);
+    const titleAr = String(payload.titleAr || payload.title || "").trim();
+    const detailsAr = String(payload.detailsAr || payload.details || "").trim();
+    const subjectId = String(payload.subjectId || "").trim();
+    const classIds = (
+      Array.isArray(payload.classIds)
+        ? payload.classIds.map(String)
+        : payload.classId
+          ? [String(payload.classId)]
+          : []
+    ).filter(Boolean);
+    if (!titleAr || !subjectId || !classIds.length) {
       return NextResponse.json({ error: "أكمل حقول الواجب قبل النشر." }, { status: 400 });
     }
+    const dueAt = payload.dueAt ? new Date(String(payload.dueAt)).toISOString() : null;
+    const existing = Array.isArray(payload.attachments)
+      ? (payload.attachments as Attachment[])
+      : [];
     const id = await createHomework(user, {
-      title: (body.title || titleAr).trim(),
+      title: String(payload.title || titleAr).trim(),
       titleAr,
-      details: (body.details || detailsAr).trim(),
+      details: String(payload.details || detailsAr).trim(),
       detailsAr,
-      subjectId: body.subjectId,
+      subjectId,
       classId: classIds[0],
       classIds,
-      dueAt: body.dueAt ? new Date(body.dueAt).toISOString() : null,
-      attachments: Array.isArray(body.attachments) ? body.attachments : [],
+      dueAt,
+      attachments: existing,
       status: "published",
     });
+    if (files.length) {
+      const saved = await saveHomeworkFiles(id, files);
+      await adminDb()
+        .doc(`homework/${id}`)
+        .update({ attachments: [...existing, ...saved] });
+    }
     return NextResponse.json({ id });
   } catch (error) {
     return NextResponse.json(

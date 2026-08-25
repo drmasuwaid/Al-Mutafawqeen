@@ -25,7 +25,7 @@ export function StudentBoard({
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[#f4f6f8]">
-      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pb-10 sm:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-3 pb-10 sm:px-6">
         <AppHeader onBack={() => void signOut()} />
 
         <section className="soft-card flex flex-1 flex-col p-4 sm:p-6">
@@ -53,7 +53,7 @@ export function StudentBoard({
             <button
               type="button"
               onClick={() => setPickerOpen(true)}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#3b82f6] px-4 text-sm font-bold text-white shadow-sm shadow-blue-500/20 hover:bg-[#2563eb]"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#3b82f6] px-4 text-sm font-bold text-white shadow-sm shadow-blue-500/20 hover:bg-[#2563eb] sm:w-auto"
             >
               <RefreshCw className="size-4" />
               تغيير الصف أو الشعبة

@@ -11,18 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { NativeSelect } from "@/components/native-select";
 import { classById, parseClassId } from "@/lib/catalog";
+import { teacherClassIds } from "@/lib/teachers";
 import type { Attachment, Homework, Profile, Subject } from "@/lib/types";
 
 const MAX_FILE = 8 * 1024 * 1024;
-
-async function readDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
 
 export function PublishDialog({
   open,
@@ -39,88 +31,78 @@ export function PublishDialog({
   homework?: Homework | null;
   onPublished?: () => void;
 }) {
-  const assigned = useMemo(
-    () => (profile.classIds ?? []).map(classById).filter(Boolean),
-    [profile.classIds]
-  );
+  const assignments = profile.subjectsGrades ?? [];
   const grades = useMemo(() => {
     const map = new Map<string, string>();
-    for (const item of assigned) {
-      if (item) map.set(item.gradeId, item.gradeLabelAr);
+    for (const row of assignments) {
+      const cls = classById(`${row.gradeId}-${row.sectionId}`);
+      if (cls) map.set(row.gradeId, cls.gradeLabelAr);
+    }
+    if (!map.size) {
+      for (const id of teacherClassIds(profile)) {
+        const cls = classById(id);
+        if (cls) map.set(cls.gradeId, cls.gradeLabelAr);
+      }
     }
     return [...map.entries()];
-  }, [assigned]);
+  }, [assignments, profile]);
 
-  const allowedSubjects =
-    profile.role === "admin"
-      ? subjects
-      : subjects.filter((item) => profile.subjectIds?.includes(item.id));
-
-  const initialGrade = homework
-    ? parseClassId(homework.classId).gradeId
-    : grades[0]?.[0] ?? "";
-
-  const [gradeId, setGradeId] = useState(initialGrade);
-  const [subjectId, setSubjectId] = useState(homework?.subjectId ?? "");
-  const [sectionIds, setSectionIds] = useState<string[]>(
-    homework
-      ? homework.classIds.map((id) => parseClassId(id).sectionId)
-      : []
-  );
-  const [titleAr, setTitleAr] = useState(homework?.titleAr ?? "");
-  const [detailsAr, setDetailsAr] = useState(homework?.detailsAr ?? "");
-  const [dueAt, setDueAt] = useState(homework?.dueAt ? homework.dueAt.slice(0, 10) : "");
-  const [attachments, setAttachments] = useState<Attachment[]>(homework?.attachments ?? []);
+  const [gradeId, setGradeId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const [sectionIds, setSectionIds] = useState<string[]>([]);
+  const [titleAr, setTitleAr] = useState("");
+  const [detailsAr, setDetailsAr] = useState("");
+  const [dueAt, setDueAt] = useState("");
+  const [existingFiles, setExistingFiles] = useState<Attachment[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
 
-  const gradeSections = assigned.filter((item) => item && item.gradeId === gradeId);
+  const gradeSections = useMemo(() => {
+    const fromAssignments = assignments
+      .filter((row) => row.gradeId === gradeId)
+      .map((row) => row.sectionId);
+    const unique = [...new Set(fromAssignments)];
+    if (unique.length) return unique;
+    return teacherClassIds(profile)
+      .map((id) => parseClassId(id))
+      .filter((item) => item.gradeId === gradeId)
+      .map((item) => item.sectionId);
+  }, [assignments, gradeId, profile]);
+
+  const allowedSubjects = useMemo(() => {
+    const ids = new Set(
+      assignments.filter((row) => row.gradeId === gradeId).map((row) => row.subjectId)
+    );
+    if (profile.role === "admin" || !ids.size) {
+      return subjects.filter((item) => profile.role === "admin" || profile.subjectIds?.includes(item.id) || ids.has(item.id));
+    }
+    return subjects.filter((item) => ids.has(item.id));
+  }, [assignments, gradeId, profile.role, profile.subjectIds, subjects]);
 
   useEffect(() => {
     if (!open) return;
-    const nextGrade = homework
-      ? parseClassId(homework.classId).gradeId
-      : grades[0]?.[0] ?? "";
+    const nextGrade = homework ? parseClassId(homework.classId).gradeId : grades[0]?.[0] ?? "";
     setGradeId(nextGrade);
     setSubjectId(homework?.subjectId ?? "");
-    setSectionIds(
-      homework ? homework.classIds.map((id) => parseClassId(id).sectionId) : []
-    );
+    setSectionIds(homework ? homework.classIds.map((id) => parseClassId(id).sectionId) : []);
     setTitleAr(homework?.titleAr ?? "");
     setDetailsAr(homework?.detailsAr ?? "");
     setDueAt(homework?.dueAt ? homework.dueAt.slice(0, 10) : "");
-    setAttachments(homework?.attachments ?? []);
+    setExistingFiles(homework?.attachments ?? []);
+    setPendingFiles([]);
   }, [open, homework, grades]);
 
-  function resetFromProps() {
-    const nextGrade = homework
-      ? parseClassId(homework.classId).gradeId
-      : grades[0]?.[0] ?? "";
-    setGradeId(nextGrade);
-    setSubjectId(homework?.subjectId ?? "");
-    setSectionIds(
-      homework ? homework.classIds.map((id) => parseClassId(id).sectionId) : []
-    );
-    setTitleAr(homework?.titleAr ?? "");
-    setDetailsAr(homework?.detailsAr ?? "");
-    setDueAt(homework?.dueAt ? homework.dueAt.slice(0, 10) : "");
-    setAttachments(homework?.attachments ?? []);
-  }
-
-  async function addFiles(fileList: FileList | null) {
+  function addFiles(fileList: FileList | null) {
     if (!fileList?.length) return;
-    const next = [...attachments];
+    const next = [...pendingFiles];
     for (const file of Array.from(fileList)) {
       if (file.size > MAX_FILE) {
         toast.error(`الملف ${file.name} أكبر من 8 ميجابايت`);
         continue;
       }
-      let dataUrl: string | undefined;
-      if (file.type.startsWith("image/") && file.size <= 180_000) {
-        dataUrl = await readDataUrl(file);
-      }
-      next.push({ name: file.name, type: file.type || "application/octet-stream", size: file.size, dataUrl });
+      next.push(file);
     }
-    setAttachments(next);
+    setPendingFiles(next);
   }
 
   async function publish() {
@@ -139,12 +121,14 @@ export function PublishDialog({
         subjectId,
         classIds,
         dueAt: dueAt || null,
-        attachments,
+        attachments: existingFiles,
       };
+      const form = new FormData();
+      form.append("payload", JSON.stringify(payload));
+      pendingFiles.forEach((file) => form.append("files", file));
       const res = await fetch(homework ? `/api/homework/${homework.id}` : "/api/homework", {
         method: homework ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: form,
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error);
@@ -159,20 +143,11 @@ export function PublishDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (next) resetFromProps();
-        onOpenChange(next);
-      }}
-    >
-      <DialogContent
-        className="max-h-[90vh] gap-4 overflow-y-auto sm:max-w-2xl"
-        showCloseButton={false}
-      >
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92dvh] gap-4 overflow-y-auto sm:max-w-2xl" showCloseButton={false}>
         <button
           type="button"
-          className="absolute top-4 left-4 text-slate-400 hover:text-slate-600"
+          className="absolute top-4 left-4 flex size-10 items-center justify-center text-slate-400"
           onClick={() => onOpenChange(false)}
           aria-label="إغلاق"
         >
@@ -194,9 +169,7 @@ export function PublishDialog({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-600">
-              المرحلة الدراسية المسندة لك:
-            </span>
+            <span className="text-sm font-medium text-slate-600">المرحلة الدراسية المسندة لك:</span>
             <NativeSelect
               value={gradeId}
               onChange={(event) => {
@@ -214,11 +187,7 @@ export function PublishDialog({
           </label>
           <label className="block space-y-2">
             <span className="text-sm font-medium text-slate-600">المادة الدراسية:</span>
-            <NativeSelect
-              value={subjectId}
-              onChange={(event) => setSubjectId(event.target.value)}
-              disabled={!gradeId}
-            >
+            <NativeSelect value={subjectId} onChange={(event) => setSubjectId(event.target.value)} disabled={!gradeId}>
               <option value="">-- اختر الصف أولاً --</option>
               {allowedSubjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
@@ -237,27 +206,23 @@ export function PublishDialog({
             </p>
           ) : (
             <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 p-3">
-              {gradeSections.map((item) =>
-                item ? (
-                  <label
-                    key={item.id}
-                    className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-sm"
-                  >
+              {gradeSections.map((id) => {
+                const cls = classById(`${gradeId}-${id}`);
+                return (
+                  <label key={id} className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-sm">
                     <input
                       type="checkbox"
-                      checked={sectionIds.includes(item.sectionId)}
+                      checked={sectionIds.includes(id)}
                       onChange={(event) => {
                         setSectionIds((current) =>
-                          event.target.checked
-                            ? [...current, item.sectionId]
-                            : current.filter((id) => id !== item.sectionId)
+                          event.target.checked ? [...current, id] : current.filter((value) => value !== id)
                         );
                       }}
                     />
-                    {item.sectionLabelAr}
+                    {cls?.sectionLabelAr ?? id}
                   </label>
-                ) : null
-              )}
+                );
+              })}
             </div>
           )}
         </div>
@@ -283,68 +248,55 @@ export function PublishDialog({
         </label>
 
         <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-600">
-            آخر موعد للتسليم (اختياري):
-          </span>
-          <input
-            type="date"
-            className="field-input w-full"
-            value={dueAt}
-            onChange={(event) => setDueAt(event.target.value)}
-          />
+          <span className="text-sm font-medium text-slate-600">آخر موعد للتسليم (اختياري):</span>
+          <input type="date" className="field-input w-full" value={dueAt} onChange={(event) => setDueAt(event.target.value)} />
         </label>
 
         <div className="space-y-2">
-          <span className="text-sm font-medium text-slate-600">
-            المرفقات (صور، PDF، مستندات):
-          </span>
+          <span className="text-sm font-medium text-slate-600">المرفقات (صور، PDF، مستندات):</span>
           <label
             className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/40 px-4 py-8 text-center"
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => {
               event.preventDefault();
-              void addFiles(event.dataTransfer.files);
+              addFiles(event.dataTransfer.files);
             }}
           >
             <CloudUpload className="size-8 text-blue-500" />
-            <p className="mt-3 text-sm font-semibold text-blue-700">
-              اضغط لرفع المرفقات أو اسحب الملفات هنا
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              يدعم الصور وملفات PDF بحد أقصى 8 ميجابايت
-            </p>
+            <p className="mt-3 text-sm font-semibold text-blue-700">اضغط لرفع المرفقات أو اسحب الملفات هنا</p>
+            <p className="mt-1 text-xs text-slate-400">يدعم الصور وملفات PDF بحد أقصى 8 ميجابايت</p>
             <input
               type="file"
               multiple
               accept="image/*,.pdf,.doc,.docx"
               className="hidden"
               onChange={(event) => {
-                void addFiles(event.target.files);
+                addFiles(event.target.files);
                 event.target.value = "";
               }}
             />
           </label>
-          {attachments.length ? (
-            <ul className="space-y-1 text-sm text-slate-600">
-              {attachments.map((file, index) => (
-                <li key={`${file.name}-${index}`} className="flex items-center justify-between">
-                  <span>{file.name}</span>
-                  <button
-                    type="button"
-                    className="text-red-500"
-                    onClick={() =>
-                      setAttachments((current) => current.filter((_, i) => i !== index))
-                    }
-                  >
-                    حذف
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          <ul className="space-y-1 text-sm text-slate-600">
+            {existingFiles.map((file, index) => (
+              <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-2">
+                <span className="truncate">{file.name}</span>
+                <button type="button" className="text-red-500" onClick={() => setExistingFiles((current) => current.filter((_, i) => i !== index))}>
+                  حذف
+                </button>
+              </li>
+            ))}
+            {pendingFiles.map((file, index) => (
+              <li key={`${file.name}-new-${index}`} className="flex items-center justify-between gap-2">
+                <span className="truncate">{file.name} (جديد)</span>
+                <button type="button" className="text-red-500" onClick={() => setPendingFiles((current) => current.filter((_, i) => i !== index))}>
+                  حذف
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
 
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <button
             type="button"
             onClick={() => void publish()}
@@ -353,11 +305,7 @@ export function PublishDialog({
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : homework ? "حفظ التعديلات" : "نشر الواجب الآن"}
           </button>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="h-12 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600"
-          >
+          <button type="button" onClick={() => onOpenChange(false)} className="h-12 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600">
             إلغاء
           </button>
         </div>

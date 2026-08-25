@@ -9,7 +9,11 @@ import type {
   Subject,
 } from "@/lib/types";
 import { adminDb } from "@/lib/firebase-admin";
+import { deleteHomeworkFiles } from "@/lib/files";
+import { isHomeworkOwner, teacherClassIds } from "@/lib/teachers";
 import type { DocumentData, QueryDocumentSnapshot } from "firebase-admin/firestore";
+
+export const HOMEWORK_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 function asIso(value: unknown, fallback = new Date().toISOString()) {
   if (!value) return fallback;
@@ -34,6 +38,7 @@ function mapAttachments(value: unknown): Attachment[] {
       name: String(row.name ?? "ملف"),
       type: String(row.type ?? "application/octet-stream"),
       size: Number(row.size ?? 0),
+      storagePath: row.storagePath ? String(row.storagePath) : undefined,
       dataUrl: row.dataUrl ? String(row.dataUrl) : undefined,
     };
   });
@@ -55,6 +60,7 @@ function mapHomework(
     : classId
       ? [classId]
       : [];
+  const teacherId = String(data.createdBy ?? data.teacherId ?? "");
   return {
     id: doc.id,
     title: String(data.title ?? ""),
@@ -64,9 +70,10 @@ function mapHomework(
     subjectId: String(data.subjectId ?? ""),
     classId: classId || classIds[0] || "",
     classIds,
-    teacherId: String(data.teacherId ?? ""),
+    createdBy: teacherId,
+    teacherId,
     teacherName: String(data.teacherName ?? ""),
-    teacherNameAr: String(data.teacherNameAr ?? ""),
+    teacherNameAr: String(data.createdByNameAr ?? data.teacherNameAr ?? ""),
     dueAt: asIsoOrNull(data.dueAt),
     status: (data.status as HomeworkStatus) ?? "published",
     createdAt: asIso(data.createdAt),
@@ -78,15 +85,13 @@ function mapHomework(
 
 function homeworkVisible(
   user: Profile,
-  item: { classId: string; classIds?: string[]; teacherId: string; status: string }
+  item: { classId: string; classIds?: string[]; teacherId: string; createdBy?: string; status: string }
 ) {
+  const owner = item.createdBy || item.teacherId;
   if (user.role === "admin") return true;
-  if (item.status !== "published" && user.uid !== item.teacherId) return false;
+  if (item.status !== "published" && user.uid !== owner) return false;
+  if (user.role === "teacher") return item.status === "published" || user.uid === owner;
   const ids = homeworkClassIds(item);
-  if (user.role === "teacher") {
-    if (item.teacherId === user.uid) return true;
-    return ids.some((id) => user.classIds?.includes(id));
-  }
   return Boolean(user.classId && ids.includes(user.classId) && item.status === "published");
 }
 
@@ -154,7 +159,23 @@ export async function listStudents(): Promise<Profile[]> {
   });
 }
 
+export async function purgeExpiredHomework() {
+  const cutoff = Date.now() - HOMEWORK_TTL_MS;
+  const snap = await adminDb().collection("homework").get();
+  for (const doc of snap.docs) {
+    const createdAt = Date.parse(asIso(doc.data().createdAt));
+    if (!Number.isFinite(createdAt) || createdAt > cutoff) continue;
+    await deleteHomeworkFiles(mapAttachments(doc.data().attachments));
+    const completions = await doc.ref.collection("completions").get();
+    const batch = adminDb().batch();
+    completions.docs.forEach((row) => batch.delete(row.ref));
+    batch.delete(doc.ref);
+    await batch.commit();
+  }
+}
+
 export async function loadLiveSnapshot(user: Profile): Promise<LiveSnapshot> {
+  await purgeExpiredHomework();
   const [homeworkSnap, classes, subjects, students] = await Promise.all([
     adminDb().collection("homework").get(),
     listClasses(),
@@ -170,6 +191,7 @@ export async function loadLiveSnapshot(user: Profile): Promise<LiveSnapshot> {
           classId: String(data.classId ?? ""),
           classIds: Array.isArray(data.classIds) ? data.classIds.map(String) : undefined,
           teacherId: String(data.teacherId ?? ""),
+          createdBy: data.createdBy ? String(data.createdBy) : undefined,
           status: String(data.status ?? "published"),
         };
         if (!homeworkVisible(user, preview)) return null;
@@ -228,11 +250,9 @@ export type HomeworkInput = {
 function assertTeacherCanUseClasses(user: Profile, classIds: string[]) {
   if (user.role === "admin") return;
   if (!classIds.length) throw new Error("اختر شعبة واحدة على الأقل.");
-  if (user.role === "teacher" && user.classIds) {
-    const blocked = classIds.find((id) => !user.classIds?.includes(id));
-    if (blocked) {
-      throw new Error("يمكنك النشر للشعب المسندة إليك فقط.");
-    }
+  const allowed = teacherClassIds(user);
+  if (allowed.length && classIds.some((id) => !allowed.includes(id))) {
+    throw new Error("يمكنك النشر للشعب المسندة إليك فقط.");
   }
 }
 
@@ -255,6 +275,8 @@ export async function createHomework(user: Profile, input: HomeworkInput) {
     dueAt: input.dueAt ?? null,
     attachments: input.attachments ?? [],
     status: input.status ?? "published",
+    createdBy: user.uid,
+    createdByNameAr: user.displayNameAr,
     teacherId: user.uid,
     teacherName: user.displayName,
     teacherNameAr: user.displayNameAr,
@@ -273,8 +295,8 @@ export async function updateHomework(
   const snap = await ref.get();
   if (!snap.exists) throw new Error("Homework not found.");
   const current = snap.data() ?? {};
-  if (user.role !== "admin" && current.teacherId !== user.uid) {
-    throw new Error("You can only edit homework you assigned.");
+  if (!isHomeworkOwner(user, { createdBy: String(current.createdBy ?? ""), teacherId: String(current.teacherId ?? "") })) {
+    throw new Error("يمكنك تعديل واجباتك فقط.");
   }
   if (input.classIds) assertTeacherCanUseClasses(user, input.classIds);
   const patch: Record<string, unknown> = { updatedAt: new Date().toISOString() };
@@ -289,9 +311,10 @@ export async function deleteHomework(user: Profile, id: string) {
   const snap = await ref.get();
   if (!snap.exists) throw new Error("Homework not found.");
   const current = snap.data() ?? {};
-  if (user.role !== "admin" && current.teacherId !== user.uid) {
-    throw new Error("You can only delete homework you assigned.");
+  if (!isHomeworkOwner(user, { createdBy: String(current.createdBy ?? ""), teacherId: String(current.teacherId ?? "") })) {
+    throw new Error("يمكنك حذف واجباتك فقط.");
   }
+  await deleteHomeworkFiles(mapAttachments(current.attachments));
   const completions = await ref.collection("completions").get();
   const batch = adminDb().batch();
   completions.docs.forEach((doc) => batch.delete(doc.ref));

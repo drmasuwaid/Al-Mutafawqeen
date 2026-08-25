@@ -9,7 +9,7 @@ export function AppHeader({
   onBack?: () => void;
 }) {
   return (
-    <header className="flex items-center justify-between gap-3 px-4 py-4 sm:px-6">
+    <header className="flex items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6 sm:py-4">
       <div className="flex min-w-0 items-center gap-3">
         {onBack ? (
           <button
@@ -25,7 +25,7 @@ export function AppHeader({
           <BookOpen className="size-5" strokeWidth={2.2} />
         </span>
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-extrabold text-[#2563eb]">
+          <h1 className="truncate text-base font-extrabold text-[#2563eb] sm:text-lg">
             الواجبات المدرسية
           </h1>
           <p className="truncate text-xs text-slate-400">

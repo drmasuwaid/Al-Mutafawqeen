@@ -1,6 +1,7 @@
 "use client";
 
-import { Calendar, FileText, ImageIcon, Pencil, Trash2 } from "lucide-react";
+import { Calendar, Pencil, Trash2 } from "lucide-react";
+import { AttachmentGallery } from "@/components/attachment-gallery";
 import { classById } from "@/lib/catalog";
 import { formatDueDay, isFresh } from "@/lib/dates";
 import type { Homework, Subject } from "@/lib/types";
@@ -20,8 +21,6 @@ export function HomeworkItem({
   onDelete?: (item: Homework) => void;
 }) {
   const classTags = item.classIds.length ? item.classIds : [item.classId];
-  const images = item.attachments.filter((file) => file.type.startsWith("image/") && file.dataUrl);
-  const otherFiles = item.attachments.filter((file) => !images.includes(file));
 
   return (
     <article className="soft-card p-5">
@@ -53,7 +52,7 @@ export function HomeworkItem({
               <button
                 type="button"
                 onClick={() => onEdit(item)}
-                className="flex size-8 items-center justify-center rounded-full text-blue-600 hover:bg-blue-50"
+                className="flex size-10 items-center justify-center rounded-full text-blue-600 hover:bg-blue-50"
                 aria-label="تعديل"
               >
                 <Pencil className="size-4" />
@@ -63,7 +62,7 @@ export function HomeworkItem({
               <button
                 type="button"
                 onClick={() => onDelete(item)}
-                className="flex size-8 items-center justify-center rounded-full text-red-500 hover:bg-red-50"
+                className="flex size-10 items-center justify-center rounded-full text-red-500 hover:bg-red-50"
                 aria-label="حذف"
               >
                 <Trash2 className="size-4" />
@@ -74,6 +73,9 @@ export function HomeworkItem({
       </div>
 
       <h3 className="mt-3 text-base font-extrabold text-slate-900">{item.titleAr || item.title}</h3>
+      {item.teacherNameAr ? (
+        <p className="mt-1 text-xs text-slate-400">نشر بواسطة: {item.teacherNameAr}</p>
+      ) : null}
       {item.detailsAr || item.details ? (
         <p className="mt-2 text-sm leading-7 text-slate-500">{item.detailsAr || item.details}</p>
       ) : null}
@@ -85,39 +87,7 @@ export function HomeworkItem({
         </p>
       ) : null}
 
-      {images.length || otherFiles.length ? (
-        <div className="mt-4 space-y-2">
-          {images.length ? (
-            <div>
-              <p className="mb-2 text-xs font-semibold text-slate-500">الصور ({images.length}):</p>
-              <div className="flex flex-wrap gap-2">
-                {images.map((file) => (
-                  <a
-                    key={file.name}
-                    href={file.dataUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block overflow-hidden rounded-lg ring-1 ring-slate-200"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={file.dataUrl} alt={file.name} className="h-16 w-16 object-cover" />
-                  </a>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          {otherFiles.map((file) => (
-            <p key={file.name} className="flex items-center gap-2 text-sm text-slate-600">
-              {file.type.includes("pdf") ? (
-                <FileText className="size-4 text-blue-500" />
-              ) : (
-                <ImageIcon className="size-4 text-blue-500" />
-              )}
-              {file.name}
-            </p>
-          ))}
-        </div>
-      ) : null}
+      <AttachmentGallery attachments={item.attachments} />
     </article>
   );
 }

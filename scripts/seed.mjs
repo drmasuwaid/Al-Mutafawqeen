@@ -102,6 +102,25 @@ function daysFromNow(days, hour = 16) {
   return date.toISOString();
 }
 
+function subjectGradesFor(user) {
+  if (!user.classIds || !user.subjectIds) return [];
+  const rows = [];
+  for (const classId of user.classIds) {
+    const [gradeId, sectionId] = classId.split("-");
+    for (const subjectId of user.subjectIds) {
+      const sub = subjects.find((item) => item.id === subjectId);
+      rows.push({
+        id: `${classId}-${subjectId}`,
+        gradeId,
+        sectionId,
+        subjectId,
+        subjectNameAr: sub?.nameAr ?? subjectId,
+      });
+    }
+  }
+  return rows;
+}
+
 async function upsertUser(user) {
   try {
     await auth.deleteUser(user.uid);
@@ -117,6 +136,21 @@ async function upsertUser(user) {
   });
   const { uid, ...profile } = user;
   await db.doc(`users/${uid}`).set(profile);
+  if (user.role === "teacher" || user.role === "admin") {
+    const subjectsGrades = subjectGradesFor(user);
+    await db.doc(`teachers/${uid}`).set({
+      id: uid,
+      name: user.displayNameAr,
+      nameEn: user.displayName,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      subjectsGrades,
+      classIds: user.classIds ?? [],
+      subjectIds: user.subjectIds ?? [],
+      updatedAt: new Date().toISOString(),
+    });
+  }
 }
 
 async function wipeCollection(name) {
@@ -134,6 +168,7 @@ async function main() {
   await wipeCollection("classes");
   await wipeCollection("subjects");
   await wipeCollection("homework");
+  await wipeCollection("teachers");
 
   for (const item of classes) {
     const { id, ...data } = item;
@@ -159,6 +194,8 @@ async function main() {
       classId: "m2-a",
       classIds: ["m2-a"],
       teacherId: "teacher-ahmed",
+      createdBy: "teacher-ahmed",
+      createdByNameAr: "أ. أحمد العراقي",
       teacherName: "Ahmed Al-Iraqi",
       teacherNameAr: "أ. أحمد العراقي",
       dueAt: daysFromNow(3, 16),
@@ -175,11 +212,13 @@ async function main() {
       classId: "m2-a",
       classIds: ["m2-a"],
       teacherId: "teacher-ahmed",
+      createdBy: "teacher-ahmed",
+      createdByNameAr: "أ. أحمد العراقي",
       teacherName: "Ahmed Al-Iraqi",
       teacherNameAr: "أ. أحمد العراقي",
       dueAt: daysFromNow(5, 16),
       status: "published",
-      attachments: [{ name: "قوانين-نيوتن.pdf", type: "application/pdf", size: 240000 }],
+      attachments: [],
     },
     {
       title: "Al-Mutanabbi summary",
@@ -191,6 +230,8 @@ async function main() {
       classId: "s4-a",
       classIds: ["s4-a"],
       teacherId: "teacher-layla",
+      createdBy: "teacher-layla",
+      createdByNameAr: "ليلى الخزرجي",
       teacherName: "Layla Al-Khazraji",
       teacherNameAr: "ليلى الخزرجي",
       dueAt: daysFromNow(2, 16),

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { persistTeacherId, clearTeacherId } from "@/lib/teachers";
 import type { Profile } from "@/lib/types";
 
 type AuthContextValue = {
@@ -29,7 +30,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return data.profile ?? null;
       })
       .then((next) => {
-        if (!cancelled) setProfile(next);
+        if (!cancelled) {
+          setProfile(next);
+          if (next?.teacherId || (next && next.role !== "student")) {
+            persistTeacherId(next.teacherId || next.uid);
+          }
+        }
       })
       .catch(() => {
         if (!cancelled) setProfile(null);
@@ -55,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!res.ok || !data.profile) {
       throw new Error(data.error || "فشل تسجيل الدخول");
     }
+    persistTeacherId(data.profile.teacherId || data.profile.uid);
     setProfile(data.profile);
   }, []);
 
@@ -73,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });
+    clearTeacherId();
     setProfile(null);
   }, []);
 
