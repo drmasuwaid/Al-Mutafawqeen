@@ -1,0 +1,10 @@
+{
+  "name": "واجبات المتفوقين",
+  "short_name": "واجبات",
+  "description": "Live homework board for Al-Mutafawqeen Secondary School",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3faf7",
+  "theme_color": "#115e59",
+  "lang": "ar"
+}
