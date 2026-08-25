@@ -33,6 +33,8 @@ npm run dev
 
 كل مدرس له معرّف ثابت `teacher_id` (لا يتغير عند تعديل اسم المستخدم). كلمة المرور محفوظة في Firebase Auth وليس في وثيقة المدرس. تعديل أو حذف الواجب متاح لصاحب `created_by` فقط. الواجبات تُحذف تلقائياً بعد 14 يوماً من النشر.
 
+المرفقات (صور وPDF) تُحفظ في **Firebase Storage** مثل تطبيق العيادة: وثيقة الواجب في Firestore تحتوي فقط على الاسم والنوع والحجم ومسار الملف، بينما البايتات نفسها في السلة. العرض والتحميل يمرّان عبر `/api/attachments` بعد التحقق من الجلسة والصف.
+
 ## ماذا يفعل التطبيق
 
 - صفحة ترحيب ببطاقتي الطلاب والكادر، وشارة **متصل (Online)**
@@ -42,11 +44,11 @@ npm run dev
 
 ## مشروع Firebase الخاص بك
 
-1. فعّل Authentication (Email/Password) و Cloud Firestore.
+1. فعّل Authentication (Email/Password) و Cloud Firestore و **Storage**.
 2. انسخ `env.example` إلى `.env.local`.
-3. انشر `firebase/firestore.rules`.
-4. ضع حساب الخدمة في `FIREBASE_SERVICE_ACCOUNT`.
+3. انشر `firebase/firestore.rules` و `firebase/storage.rules`.
+4. ضع حساب الخدمة في `FIREBASE_SERVICE_ACCOUNT` واسم السلة في `FIREBASE_STORAGE_BUCKET` إن لزم.
 5. أنشئ وثائق `users/{uid}` بنفس الحقول (role, username, classIds).
 6. شغّل `npm run dev:next` أو `npm run build && npm start`.
 
-لا تضبط `FIRESTORE_EMULATOR_HOST` أو `FIREBASE_AUTH_EMULATOR_HOST` في الإنتاج.
+لا تضبط `FIRESTORE_EMULATOR_HOST` أو `FIREBASE_AUTH_EMULATOR_HOST` أو `FIREBASE_STORAGE_EMULATOR_HOST` في الإنتاج.

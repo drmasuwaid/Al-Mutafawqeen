@@ -1,6 +1,7 @@
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
 function projectId() {
   return (
@@ -8,6 +9,10 @@ function projectId() {
     process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
     "school-task-flow"
   );
+}
+
+function storageBucket() {
+  return process.env.FIREBASE_STORAGE_BUCKET || `${projectId()}.appspot.com`;
 }
 
 function getApp(): App {
@@ -19,10 +24,14 @@ function getApp(): App {
     return initializeApp({
       credential: cert(JSON.parse(serviceAccount) as object),
       projectId: projectId(),
+      storageBucket: storageBucket(),
     });
   }
 
-  return initializeApp({ projectId: projectId() });
+  return initializeApp({
+    projectId: projectId(),
+    storageBucket: storageBucket(),
+  });
 }
 
 export function adminAuth() {
@@ -33,10 +42,15 @@ export function adminDb() {
   return getFirestore(getApp());
 }
 
+export function adminBucket() {
+  return getStorage(getApp()).bucket();
+}
+
 export function isEmulator() {
   return Boolean(
     process.env.FIRESTORE_EMULATOR_HOST ||
-      process.env.FIREBASE_AUTH_EMULATOR_HOST
+      process.env.FIREBASE_AUTH_EMULATOR_HOST ||
+      process.env.FIREBASE_STORAGE_EMULATOR_HOST
   );
 }
 

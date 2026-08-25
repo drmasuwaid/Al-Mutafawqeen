@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireProfile } from "@/lib/session";
 import { deleteHomework, updateHomework } from "@/lib/homework";
-import { saveHomeworkFiles } from "@/lib/files";
+import { syncHomeworkAttachments } from "@/lib/files";
 import { adminDb } from "@/lib/firebase-admin";
+import { isHomeworkOwner } from "@/lib/teachers";
 import type { Attachment } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -37,7 +38,19 @@ export async function PATCH(request: Request, { params }: Params) {
     const keep = Array.isArray(payload.attachments)
       ? (payload.attachments as Attachment[])
       : [];
-    const uploaded = files.length ? await saveHomeworkFiles(id, files) : [];
+    const current = await adminDb().doc(`homework/${id}`).get();
+    if (!current.exists) throw new Error("Homework not found.");
+    const data = current.data() ?? {};
+    if (
+      !isHomeworkOwner(user, {
+        createdBy: String(data.createdBy ?? ""),
+        teacherId: String(data.teacherId ?? ""),
+      })
+    ) {
+      throw new Error("يمكنك تعديل واجباتك فقط.");
+    }
+    const previous = Array.isArray(data.attachments) ? (data.attachments as Attachment[]) : [];
+    const attachments = await syncHomeworkAttachments(id, previous, keep, files);
     await updateHomework(user, id, {
       title: payload.title ? String(payload.title) : payload.titleAr ? String(payload.titleAr) : undefined,
       titleAr: payload.titleAr ? String(payload.titleAr) : undefined,
@@ -52,13 +65,8 @@ export async function PATCH(request: Request, { params }: Params) {
           : payload.dueAt
             ? new Date(String(payload.dueAt)).toISOString()
             : null,
-      attachments: [...keep, ...uploaded],
+      attachments,
     });
-    if (uploaded.length) {
-      await adminDb().doc(`homework/${id}`).update({
-        attachments: [...keep, ...uploaded],
-      });
-    }
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json(

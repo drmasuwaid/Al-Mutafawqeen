@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireProfile } from "@/lib/session";
 import { adminDb } from "@/lib/firebase-admin";
-import { readStoredFile } from "@/lib/files";
+import { homeworkIdFromStoragePath, readStoredFile } from "@/lib/files";
 import { homeworkClassIds } from "@/lib/homework";
 
 export const runtime = "nodejs";
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   if (!storagePath || storagePath.includes("..")) {
     return NextResponse.json({ error: "Missing file" }, { status: 400 });
   }
-  const homeworkId = storagePath.split("/")[0];
+  const homeworkId = homeworkIdFromStoragePath(storagePath);
   const snap = await adminDb().doc(`homework/${homeworkId}`).get();
   if (!snap.exists) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

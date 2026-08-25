@@ -5,8 +5,10 @@ const require = createRequire(import.meta.url);
 
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8181";
 process.env.FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099";
+process.env.FIREBASE_STORAGE_EMULATOR_HOST = "127.0.0.1:9199";
 process.env.FIREBASE_PROJECT_ID = "school-task-flow";
 process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = "school-task-flow";
+process.env.FIREBASE_STORAGE_BUCKET = "school-task-flow.appspot.com";
 process.env.SESSION_SECRET ||= "dev-only-school-task-flow-secret";
 process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR = "1";
 
@@ -51,6 +53,19 @@ async function waitForAuth() {
   throw new Error("Firebase Auth emulator did not start.");
 }
 
+async function waitForStorage() {
+  for (let i = 0; i < 80; i += 1) {
+    try {
+      const res = await fetch("http://127.0.0.1:9199/storage/v1/b");
+      if (res.ok || res.status === 400 || res.status === 404) return;
+    } catch {
+      /* still booting */
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error("Firebase Storage emulator did not start.");
+}
+
 async function seed() {
   await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, ["scripts/seed.mjs"], {
@@ -69,12 +84,13 @@ run(process.execPath, [
   firebaseBin,
   "emulators:start",
   "--only",
-  "auth,firestore",
+  "auth,firestore,storage",
   "--project",
   "school-task-flow",
 ]);
 
 await waitForAuth();
+await waitForStorage();
 await seed();
 
 run(
