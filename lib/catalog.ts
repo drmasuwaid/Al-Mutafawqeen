@@ -49,3 +49,52 @@ export function allClasses() {
 export function classById(classId: string) {
   return allClasses().find((item) => item.id === classId) ?? null;
 }
+
+export function groupedClassBadgeLabels(classIds: string[]) {
+  const groups = new Map<
+    string,
+    { key: string; gradeLabel: string; gradeOrder: number; sections: { id: string; label: string; order: number }[] }
+  >();
+  const leftovers: string[] = [];
+
+  for (const id of classIds) {
+    const cls = classById(id);
+    if (!cls) {
+      leftovers.push(id);
+      continue;
+    }
+    let group = groups.get(cls.gradeId);
+    if (!group) {
+      group = {
+        key: cls.gradeId,
+        gradeLabel: cls.gradeLabelAr,
+        gradeOrder: cls.grade,
+        sections: [],
+      };
+      groups.set(cls.gradeId, group);
+    }
+    if (!group.sections.some((section) => section.id === cls.sectionId)) {
+      const order = SECTIONS.findIndex((section) => section.id === cls.sectionId);
+      group.sections.push({
+        id: cls.sectionId,
+        label: cls.sectionLabelAr,
+        order: order < 0 ? 99 : order,
+      });
+    }
+  }
+
+  const badges = [...groups.values()]
+    .sort((a, b) => a.gradeOrder - b.gradeOrder)
+    .map((group) => {
+      const sections = group.sections
+        .sort((a, b) => a.order - b.order)
+        .map((section) => section.label)
+        .join("، ");
+      return { key: group.key, text: `${group.gradeLabel} - ${sections}` };
+    });
+
+  for (const id of leftovers) {
+    badges.push({ key: id, text: id });
+  }
+  return badges;
+}

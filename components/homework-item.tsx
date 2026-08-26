@@ -2,7 +2,7 @@
 
 import { Clock, Pencil, Trash2 } from "lucide-react";
 import { AttachmentGallery } from "@/components/attachment-gallery";
-import { classById } from "@/lib/catalog";
+import { groupedClassBadgeLabels } from "@/lib/catalog";
 import { formatPublishedAt, isFresh } from "@/lib/dates";
 import type { Homework, Subject } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,7 @@ export function HomeworkItem({
   onEdit?: (item: Homework) => void;
   onDelete?: (item: Homework) => void;
 }) {
-  const classTags = item.classIds.length ? item.classIds : [item.classId];
+  const classTags = groupedClassBadgeLabels(item.classIds.length ? item.classIds : [item.classId]);
   const ownerId = (item.createdBy || "").trim();
   const sessionId = (currentUserId || "").trim();
   const canManage = Boolean(sessionId && ownerId && ownerId === sessionId);
@@ -33,17 +33,14 @@ export function HomeworkItem({
           <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
             {subject?.nameAr ?? "مادة"}
           </span>
-          {classTags.map((id) => {
-            const cls = classById(id);
-            return (
-              <span
-                key={id}
-                className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600"
-              >
-                {cls ? `${cls.gradeLabelAr} · ${cls.sectionLabelAr}` : id}
-              </span>
-            );
-          })}
+          {classTags.map((tag) => (
+            <span
+              key={tag.key}
+              className="max-w-full rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 [overflow-wrap:anywhere]"
+            >
+              {tag.text}
+            </span>
+          ))}
           {isFresh(item.createdAt) ? (
             <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
               جديد الآن
