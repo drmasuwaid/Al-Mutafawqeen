@@ -4,6 +4,7 @@ import { loadProfile, requireProfile } from "@/lib/session";
 import { emailForUid, mapFirebaseAuthError, signInWithEmailPassword } from "@/lib/staff-auth";
 import {
   classIdsFromAssignments,
+  isPrincipal,
   newAssignmentId,
   subjectIdsFromAssignments,
 } from "@/lib/teachers";
@@ -119,8 +120,11 @@ export async function PATCH(request: Request) {
 
 export async function PUT(request: Request) {
   const user = await requireProfile();
-  if (!user || (user.role !== "teacher" && user.role !== "admin")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user || !isPrincipal(user)) {
+    return NextResponse.json(
+      { error: "تعديل المراحل والشعب والمواد متاح لمدير المدرسة فقط." },
+      { status: 403 }
+    );
   }
   const body = (await request.json()) as { subjectsGrades?: SubjectGrade[] };
   const grades = new Set(GRADES.map((item) => item.id));

@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { GraduationCap, Layers, Loader2, LogOut, Pencil, Plus, Settings, Trash2 } from "lucide-react";
+import { GraduationCap, Loader2, LogOut, Plus, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { AccountDialog } from "@/components/account-dialog";
 import { EmptyHomework, HomeworkItem } from "@/components/homework-item";
 import { PublishDialog } from "@/components/publish-dialog";
-import { StagesDialog } from "@/components/stages-dialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { classById } from "@/lib/catalog";
@@ -27,10 +26,8 @@ export function TeacherDashboard({
 }) {
   const { profile, signOut, setProfile } = useAuth();
   const [publishOpen, setPublishOpen] = useState(false);
-  const [stagesOpen, setStagesOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [editing, setEditing] = useState<Homework | null>(null);
-  const [editingAssignment, setEditingAssignment] = useState<string | null>(null);
 
   if (!profile) return null;
   const teacher = profile;
@@ -47,23 +44,6 @@ export function TeacherDashboard({
         } satisfies SubjectGrade;
       });
   const assignedGroups = groupAssignmentsByGrade(assignedRows);
-
-  async function removeAssignmentGrade(gradeId: string) {
-    const subjectsGrades = (teacher.subjectsGrades ?? assignedRows).filter(
-      (row) => row.gradeId !== gradeId
-    );
-    const res = await fetch("/api/account", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subjectsGrades }),
-    });
-    const data = (await res.json()) as { error?: string; profile?: typeof teacher };
-    if (!res.ok || !data.profile) {
-      toast.error(data.error || "تعذر حذف المرحلة.");
-      return;
-    }
-    setProfile(data.profile);
-  }
 
   function assertOwnsHomework(item: Homework, action: "edit" | "delete") {
     if (isHomeworkOwner(teacher, item)) return true;
@@ -105,17 +85,6 @@ export function TeacherDashboard({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setEditingAssignment(null);
-                  setStagesOpen(true);
-                }}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-400/40 px-3 text-sm font-bold hover:bg-blue-400/55"
-              >
-                <Layers className="size-4" />
-                إضافة / تعديل المراحل
-              </button>
-              <button
-                type="button"
                 onClick={() => setAccountOpen(true)}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-400/40 px-3 text-sm font-bold hover:bg-blue-400/55"
               >
@@ -129,41 +98,18 @@ export function TeacherDashboard({
             <p className="mb-3 text-sm text-blue-100">المراحل والشعب المسندة إليك:</p>
             <div className="flex flex-col gap-2">
               {assignedGroups.length === 0 ? (
-                <p className="text-sm text-blue-100">لم تُسند إليك مراحل بعد. أضف مرحلة للبدء بالنشر.</p>
+                <p className="text-sm text-blue-100">لم يُسند إليك مدير المدرسة أي مراحل بعد.</p>
               ) : (
                 assignedGroups.map((group) => {
                   return (
                     <div
                       key={group.gradeId}
-                      className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-3 text-slate-800 sm:px-4"
+                      className="flex items-center gap-3 rounded-2xl bg-white px-3 py-3 text-slate-800 sm:px-4"
                     >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                          <GraduationCap className="size-4" />
-                        </span>
-                        <p className="min-w-0 text-sm font-semibold leading-6">{group.line}</p>
-                      </div>
-                      <div className="flex shrink-0 items-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingAssignment(group.rows[0]?.id ?? null);
-                            setStagesOpen(true);
-                          }}
-                          className="flex size-10 items-center justify-center rounded-full text-blue-600 hover:bg-blue-50"
-                          aria-label="تعديل"
-                        >
-                          <Pencil className="size-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void removeAssignmentGrade(group.gradeId)}
-                          className="flex size-10 items-center justify-center rounded-full text-red-500 hover:bg-red-50"
-                          aria-label="حذف"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </div>
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                        <GraduationCap className="size-4" />
+                      </span>
+                      <p className="min-w-0 text-sm font-semibold leading-6">{group.line}</p>
                     </div>
                   );
                 })
@@ -244,17 +190,6 @@ export function TeacherDashboard({
         subjects={snapshot?.subjects ?? []}
         homework={editing}
         onPublished={onPublished}
-      />
-      <StagesDialog
-        open={stagesOpen}
-        onOpenChange={(open) => {
-          setStagesOpen(open);
-          if (!open) setEditingAssignment(null);
-        }}
-        profile={profile}
-        subjects={snapshot?.subjects ?? []}
-        editingId={editingAssignment}
-        onSaved={(next) => setProfile(next)}
       />
       <AccountDialog
         open={accountOpen}
