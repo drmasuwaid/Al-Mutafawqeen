@@ -124,9 +124,11 @@ export function PrincipalDashboard() {
             الأسماء مرتبة أبجدياً. يمكنك تعديل بيانات المدرس أو حذف حسابه من هنا.
           </p>
           <label className="relative mt-4 block">
-            <Search className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-slate-400" />
             <input
-              className="field-input w-full pr-10"
+              className="field-input w-full"
+              style={{ paddingRight: 42 }}
+              dir="rtl"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="ابحث بالاسم أو اسم المستخدم..."
