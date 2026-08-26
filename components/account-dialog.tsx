@@ -84,7 +84,7 @@ export function AccountDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent className="max-h-[92dvh] overflow-y-auto" showCloseButton={false}>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto text-right" dir="rtl" showCloseButton={false}>
         <button
           type="button"
           className="absolute top-4 left-4 flex size-10 items-center justify-center text-slate-400"
@@ -97,14 +97,15 @@ export function AccountDialog({
           أدخل كلمة المرور الحالية للتأكيد، ثم حدّث الاسم أو اسم المستخدم أو كلمة المرور. أعد كتابة
           كلمة المرور الجديدة للتأكد من عدم وجود خطأ مطبعي.
         </DialogDescription>
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-600">الاسم:</span>
-          <input className="field-input w-full" value={displayNameAr} onChange={(event) => setDisplayNameAr(event.target.value)} />
+        <label className="block space-y-2 text-right">
+          <span className="block text-sm font-medium text-slate-600">الاسم:</span>
+          <input dir="rtl" className="field-input rtl-field w-full" value={displayNameAr} onChange={(event) => setDisplayNameAr(event.target.value)} />
         </label>
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-600">اسم المستخدم:</span>
+        <label className="block space-y-2 text-right">
+          <span className="block text-sm font-medium text-slate-600">اسم المستخدم:</span>
           <input
-            className="field-input ltr-field w-full"
+            dir="rtl"
+            className="field-input rtl-field w-full"
             value={username}
             autoComplete="username"
             autoCapitalize="none"
@@ -168,11 +169,12 @@ function PasswordField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="block space-y-2">
-      <span className="text-sm font-medium text-slate-600">{label}</span>
+    <label className="block space-y-2 text-right">
+      <span className="block text-sm font-medium text-slate-600">{label}</span>
       <div className="relative">
         <input
-          className="field-input ltr-field w-full ps-11"
+          dir="rtl"
+          className="field-input rtl-field w-full pe-11"
           type={shown ? "text" : "password"}
           value={value}
           autoComplete={autoComplete}

@@ -43,7 +43,7 @@ export function StudentLoginDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-5 sm:max-w-[440px]" showCloseButton={false}>
+      <DialogContent className="gap-5 text-right sm:max-w-[440px]" dir="rtl" showCloseButton={false}>
         <button
           type="button"
           className="absolute top-4 left-4 text-slate-400 transition hover:text-slate-600"
@@ -73,11 +73,12 @@ export function StudentLoginDialog({
             void submit();
           }}
         >
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-600">
+          <label className="block space-y-2 text-right">
+            <span className="block text-sm font-medium text-slate-600">
               المرحلة الدراسية / الصف:
             </span>
             <NativeSelect
+              dir="rtl"
               value={gradeId}
               onChange={(event) => {
                 setGradeId(event.target.value);
@@ -93,9 +94,10 @@ export function StudentLoginDialog({
             </NativeSelect>
           </label>
 
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-600">الشعبة:</span>
+          <label className="block space-y-2 text-right">
+            <span className="block text-sm font-medium text-slate-600">الشعبة:</span>
             <NativeSelect
+              dir="rtl"
               value={sectionId}
               onChange={(event) => setSectionId(event.target.value)}
             >

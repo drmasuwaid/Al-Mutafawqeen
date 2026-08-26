@@ -131,16 +131,23 @@
 
 .native-select {
   @apply h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-blue-400 focus:ring-[3px] focus:ring-blue-500/15;
+  direction: rtl;
+  text-align: right;
 }
 
 .field-input {
   @apply h-12 rounded-xl border-slate-200 bg-white px-4 text-sm;
 }
 
-.ltr-field {
-  direction: ltr;
-  text-align: left;
+.rtl-field {
+  direction: rtl;
+  text-align: right;
   unicode-bidi: isolate;
+}
+
+.rtl-field::placeholder {
+  direction: rtl;
+  text-align: right;
 }
 
 .soft-card {

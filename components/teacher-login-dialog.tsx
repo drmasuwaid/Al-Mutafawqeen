@@ -38,7 +38,7 @@ export function TeacherLoginDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-5 sm:max-w-[440px]" showCloseButton={false}>
+      <DialogContent className="gap-5 text-right sm:max-w-[440px]" dir="rtl" showCloseButton={false}>
         <button
           type="button"
           className="absolute top-4 left-4 text-slate-400 transition hover:text-slate-600"
@@ -68,10 +68,11 @@ export function TeacherLoginDialog({
             void submit();
           }}
         >
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-600">اسم المستخدم:</span>
+          <label className="block space-y-2 text-right">
+            <span className="block text-sm font-medium text-slate-600">اسم المستخدم:</span>
             <input
-              className="field-input ltr-field w-full"
+              dir="rtl"
+              className="field-input rtl-field w-full"
               placeholder="أدخل اسم المستخدم"
               value={username}
               autoComplete="username"
@@ -82,11 +83,12 @@ export function TeacherLoginDialog({
             />
           </label>
 
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-600">كلمة المرور:</span>
+          <label className="block space-y-2 text-right">
+            <span className="block text-sm font-medium text-slate-600">كلمة المرور:</span>
             <div className="relative">
               <input
-                className="field-input ltr-field w-full ps-11"
+                dir="rtl"
+                className="field-input rtl-field w-full pe-11"
                 type={showPassword ? "text" : "password"}
                 placeholder="أدخل كلمة المرور"
                 value={password}
