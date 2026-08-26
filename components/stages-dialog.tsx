@@ -12,6 +12,7 @@ import {
 import { NativeSelect } from "@/components/native-select";
 import { GRADES, SECTIONS, classById } from "@/lib/catalog";
 import { formatGroupedSubjects, groupAssignments, newAssignmentId } from "@/lib/teachers";
+import { useMergedSubjects } from "@/hooks/use-subjects";
 import type { Profile, Subject, SubjectGrade } from "@/lib/types";
 
 type PickedSubject = { id: string; nameAr: string };
@@ -49,6 +50,7 @@ export function StagesDialog({
   const [pickedSubjects, setPickedSubjects] = useState<PickedSubject[]>([]);
   const [editGroup, setEditGroup] = useState<{ gradeId: string; sectionId: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const catalog = useMergedSubjects(subjects);
 
   function resetForm() {
     setEditGroup(null);
@@ -86,7 +88,7 @@ export function StagesDialog({
       toast.error("اختر المادة الدراسية أولاً.");
       return;
     }
-    const selected = subjects.find((item) => item.id === pickerSubjectId);
+    const selected = catalog.find((item) => item.id === pickerSubjectId);
     if (!selected) {
       toast.error("اختر المادة الدراسية.");
       return;
@@ -174,7 +176,7 @@ export function StagesDialog({
     }
   }
 
-  const availableSubjects = subjects.filter(
+  const availableSubjects = catalog.filter(
     (subject) => !pickedSubjects.some((item) => item.id === subject.id)
   );
   const groups = groupAssignments(rows);

@@ -13,6 +13,7 @@ import { NativeSelect } from "@/components/native-select";
 import { attachmentFrameClass } from "@/lib/attachment-url";
 import { classById, parseClassId } from "@/lib/catalog";
 import { teacherClassIds } from "@/lib/teachers";
+import { useMergedSubjects } from "@/hooks/use-subjects";
 import type { Attachment, Homework, Profile, Subject } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,7 @@ export function PublishDialog({
   onPublished?: () => void;
 }) {
   const assignments = profile.subjectsGrades ?? [];
+  const catalog = useMergedSubjects(subjects);
   const grades = useMemo(() => {
     const map = new Map<string, string>();
     for (const row of assignments) {
@@ -75,10 +77,10 @@ export function PublishDialog({
       assignments.filter((row) => row.gradeId === gradeId).map((row) => row.subjectId)
     );
     if (profile.role === "admin" || !ids.size) {
-      return subjects.filter((item) => profile.role === "admin" || profile.subjectIds?.includes(item.id) || ids.has(item.id));
+      return catalog.filter((item) => profile.role === "admin" || profile.subjectIds?.includes(item.id) || ids.has(item.id));
     }
-    return subjects.filter((item) => ids.has(item.id));
-  }, [assignments, gradeId, profile.role, profile.subjectIds, subjects]);
+    return catalog.filter((item) => ids.has(item.id));
+  }, [assignments, catalog, gradeId, profile.role, profile.subjectIds]);
 
   useEffect(() => {
     if (!open) return;

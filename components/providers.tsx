@@ -2,6 +2,7 @@
 
 import { AuthProvider } from "@/hooks/use-auth";
 import { LocaleProvider } from "@/hooks/use-locale";
+import { SubjectsProvider } from "@/hooks/use-subjects";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -10,8 +11,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <LocaleProvider>
         <AuthProvider>
-          {children}
-          <Toaster />
+          <SubjectsProvider>
+            {children}
+            <Toaster />
+          </SubjectsProvider>
         </AuthProvider>
       </LocaleProvider>
     </ThemeProvider>

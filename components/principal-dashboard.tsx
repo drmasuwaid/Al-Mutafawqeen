@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, GraduationCap, Loader2, LogOut, Pencil, Search, Settings, Trash2, UserPlus } from "lucide-react";
+import { Building2, GraduationCap, Loader2, LogOut, Pencil, Plus, Search, Settings, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { AccountDialog } from "@/components/account-dialog";
+import { AddSubjectDialog } from "@/components/add-subject-dialog";
 import { TeacherFormDialog } from "@/components/add-teacher-dialog";
 import { AppHeader } from "@/components/app-header";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
@@ -22,6 +23,7 @@ export function PrincipalDashboard() {
   const [deleting, setDeleting] = useState<TeacherSummary | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [query, setQuery] = useState("");
+  const [subjectOpen, setSubjectOpen] = useState(false);
 
   const loadTeachers = useCallback(async () => {
     setLoading(true);
@@ -76,7 +78,20 @@ export function PrincipalDashboard() {
   return (
     <div className="flex min-h-full flex-1 flex-col overflow-x-hidden bg-[#f4f6f8]">
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-3 pb-10 sm:px-6">
-        <AppHeader onBack={() => void signOut()} />
+        <AppHeader
+          onBack={() => void signOut()}
+          trailing={
+            <button
+              type="button"
+              title="إضافة مادة جديدة"
+              aria-label="إضافة مادة جديدة"
+              onClick={() => setSubjectOpen(true)}
+              className="flex size-9 items-center justify-center rounded-full bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition hover:bg-blue-100 hover:text-blue-700"
+            >
+              <Plus className="size-4" strokeWidth={2.75} />
+            </button>
+          }
+        />
 
         <section className="overflow-hidden rounded-[24px] bg-[#4f46e5] p-4 text-white shadow-lg shadow-indigo-500/20 sm:rounded-[28px] sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -237,6 +252,7 @@ export function PrincipalDashboard() {
         profile={profile}
         onSaved={(next) => setProfile(next)}
       />
+      <AddSubjectDialog open={subjectOpen} onOpenChange={setSubjectOpen} />
     </div>
   );
 }

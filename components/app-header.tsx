@@ -1,12 +1,15 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { BookOpen, ChevronRight } from "lucide-react";
 import { ConnectionBadge } from "@/components/connection-badge";
 
 export function AppHeader({
   onBack,
+  trailing,
 }: {
   onBack?: () => void;
+  trailing?: ReactNode;
 }) {
   return (
     <header className="flex items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6 sm:py-4">
@@ -33,7 +36,10 @@ export function AppHeader({
           </p>
         </div>
       </div>
-      <ConnectionBadge />
+      <div className="flex shrink-0 items-center gap-2">
+        {trailing}
+        <ConnectionBadge />
+      </div>
     </header>
   );
 }

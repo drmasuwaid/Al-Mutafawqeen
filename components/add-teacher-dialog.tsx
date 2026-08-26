@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { GRADES, SECTIONS } from "@/lib/catalog";
 import { pickerSelectionsFromAssignments } from "@/lib/teachers";
-import type { Subject, TeacherSummary } from "@/lib/types";
+import { useSubjects } from "@/hooks/use-subjects";
+import type { TeacherSummary } from "@/lib/types";
 
 export function TeacherFormDialog({
   open,
@@ -32,7 +33,7 @@ export function TeacherFormDialog({
   const [grades, setGrades] = useState<PickerOption[]>([]);
   const [sections, setSections] = useState<PickerOption[]>([]);
   const [subjects, setSubjects] = useState<PickerOption[]>([]);
-  const [catalog, setCatalog] = useState<Subject[]>([]);
+  const { subjects: catalog, reload } = useSubjects();
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -61,13 +62,8 @@ export function TeacherFormDialog({
       setSections([]);
       setSubjects([]);
     }
-    fetch("/api/subjects")
-      .then(async (res) => {
-        const data = (await res.json()) as { subjects?: Subject[] };
-        setCatalog(data.subjects ?? []);
-      })
-      .catch(() => setCatalog([]));
-  }, [open, teacher]);
+    void reload();
+  }, [open, teacher, reload]);
 
   async function save() {
     setBusy(true);
