@@ -26,11 +26,17 @@ export function AccountDialog({
   const [username, setUsername] = useState(profile.username ?? "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function save() {
+    const nextPassword = newPassword.trim();
+    if (nextPassword && nextPassword !== newPasswordConfirm.trim()) {
+      toast.error("كلمتا المرور الجديدتان غير متطابقتين.");
+      return;
+    }
     setBusy(true);
     try {
       const res = await fetch("/api/account", {
@@ -40,14 +46,23 @@ export function AccountDialog({
           displayNameAr,
           username,
           currentPassword,
-          newPassword: newPassword.trim() || undefined,
+          newPassword: nextPassword || undefined,
+          newPasswordConfirm: nextPassword ? newPasswordConfirm.trim() : undefined,
         }),
       });
-      const data = (await res.json()) as { error?: string; profile?: Profile };
+      const data = (await res.json()) as {
+        error?: string;
+        profile?: Profile;
+        passwordChanged?: boolean;
+      };
       if (!res.ok || !data.profile) throw new Error(data.error);
       onSaved(data.profile);
       onOpenChange(false);
-      toast.success("تم تحديث معلومات الحساب.");
+      toast.success(
+        data.passwordChanged
+          ? "تم حفظ كلمة المرور الجديدة. استخدمها في الدخول التالي."
+          : "تم تحديث معلومات الحساب."
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر الحفظ");
     } finally {
@@ -64,6 +79,7 @@ export function AccountDialog({
           setUsername(profile.username ?? "");
           setCurrentPassword("");
           setNewPassword("");
+          setNewPasswordConfirm("");
         }
         onOpenChange(next);
       }}
@@ -78,7 +94,8 @@ export function AccountDialog({
         </button>
         <DialogTitle className="text-xl font-extrabold">تغيير معلومات الحساب</DialogTitle>
         <DialogDescription>
-          أدخل كلمة المرور الحالية للتأكيد، ثم حدّث الاسم أو اسم المستخدم أو كلمة المرور.
+          أدخل كلمة المرور الحالية للتأكيد، ثم حدّث الاسم أو اسم المستخدم أو كلمة المرور. أعد كتابة
+          كلمة المرور الجديدة للتأكد من عدم وجود خطأ مطبعي.
         </DialogDescription>
         <label className="block space-y-2">
           <span className="text-sm font-medium text-slate-600">الاسم:</span>
@@ -86,36 +103,42 @@ export function AccountDialog({
         </label>
         <label className="block space-y-2">
           <span className="text-sm font-medium text-slate-600">اسم المستخدم:</span>
-          <input className="field-input w-full" value={username} onChange={(event) => setUsername(event.target.value)} />
+          <input
+            className="field-input ltr-field w-full"
+            value={username}
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            onChange={(event) => setUsername(event.target.value)}
+          />
         </label>
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-600">كلمة المرور الحالية:</span>
-          <div className="relative">
-            <input
-              className="field-input w-full ps-11"
-              type={showCurrent ? "text" : "password"}
-              value={currentPassword}
-              onChange={(event) => setCurrentPassword(event.target.value)}
-            />
-            <button type="button" className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" onClick={() => setShowCurrent((value) => !value)}>
-              {showCurrent ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            </button>
-          </div>
-        </label>
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-600">كلمة المرور الجديدة (اختياري):</span>
-          <div className="relative">
-            <input
-              className="field-input w-full ps-11"
-              type={showNew ? "text" : "password"}
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-            />
-            <button type="button" className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" onClick={() => setShowNew((value) => !value)}>
-              {showNew ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            </button>
-          </div>
-        </label>
+        <PasswordField
+          label="كلمة المرور الحالية:"
+          value={currentPassword}
+          shown={showCurrent}
+          autoComplete="current-password"
+          onToggle={() => setShowCurrent((value) => !value)}
+          onChange={setCurrentPassword}
+        />
+        <PasswordField
+          label="كلمة المرور الجديدة (اختياري):"
+          value={newPassword}
+          shown={showNew}
+          autoComplete="new-password"
+          onToggle={() => setShowNew((value) => !value)}
+          onChange={setNewPassword}
+        />
+        {newPassword.trim() ? (
+          <PasswordField
+            label="تأكيد كلمة المرور الجديدة:"
+            value={newPasswordConfirm}
+            shown={showNew}
+            autoComplete="new-password"
+            onToggle={() => setShowNew((value) => !value)}
+            onChange={setNewPasswordConfirm}
+          />
+        ) : null}
         <div className="flex flex-col gap-2 sm:flex-row">
           <button type="button" onClick={() => void save()} disabled={busy} className="h-12 flex-1 rounded-xl bg-[#3b82f6] font-bold text-white">
             حفظ
@@ -126,5 +149,42 @@ export function AccountDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PasswordField({
+  label,
+  value,
+  shown,
+  autoComplete,
+  onToggle,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  shown: boolean;
+  autoComplete: string;
+  onToggle: () => void;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-sm font-medium text-slate-600">{label}</span>
+      <div className="relative">
+        <input
+          className="field-input ltr-field w-full ps-11"
+          type={shown ? "text" : "password"}
+          value={value}
+          autoComplete={autoComplete}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        <button type="button" className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" onClick={onToggle}>
+          {shown ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        </button>
+      </div>
+    </label>
   );
 }

@@ -289,23 +289,29 @@ function CredentialForm({
     >
       <label className="block space-y-2">
         <span className="text-sm font-medium text-slate-600">اسم المستخدم:</span>
-        <input
-          className="field-input w-full"
-          placeholder="أدخل اسم المستخدم"
-          value={username}
-          autoComplete="username"
-          onChange={(event) => onUsername(event.target.value)}
-        />
+            <input
+              className="field-input ltr-field w-full"
+              placeholder="أدخل اسم المستخدم"
+              value={username}
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              onChange={(event) => onUsername(event.target.value)}
+            />
       </label>
       <label className="block space-y-2">
         <span className="text-sm font-medium text-slate-600">كلمة المرور:</span>
         <div className="relative">
           <input
-            className="field-input w-full ps-11"
+            className="field-input ltr-field w-full ps-11"
             type={showPassword ? "text" : "password"}
             placeholder="أدخل كلمة المرور"
             value={password}
             autoComplete="current-password"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             onChange={(event) => onPassword(event.target.value)}
           />
           <button

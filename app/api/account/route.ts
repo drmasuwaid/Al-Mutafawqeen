@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { adminAuth, adminDb, authSignInUrl } from "@/lib/firebase-admin";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { loadProfile, requireProfile } from "@/lib/session";
+import { emailForUid, mapFirebaseAuthError, signInWithEmailPassword } from "@/lib/staff-auth";
 import {
   classIdsFromAssignments,
   newAssignmentId,
@@ -12,12 +13,8 @@ import type { SubjectGrade } from "@/lib/types";
 export const runtime = "nodejs";
 
 async function verifyPassword(email: string, password: string) {
-  const authRes = await fetch(authSignInUrl(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, returnSecureToken: true }),
-  });
-  return authRes.ok;
+  const { ok, payload } = await signInWithEmailPassword(email, password);
+  return { ok, message: payload.error?.message };
 }
 
 async function usernameTaken(username: string, exceptUid: string) {
@@ -58,13 +55,28 @@ export async function PATCH(request: Request) {
     username?: string;
     currentPassword?: string;
     newPassword?: string;
+    newPasswordConfirm?: string;
   };
-  if (!body.currentPassword) {
+  const currentPassword = body.currentPassword?.trim();
+  if (!currentPassword) {
     return NextResponse.json({ error: "أدخل كلمة المرور الحالية للتأكيد." }, { status: 400 });
   }
-  const ok = await verifyPassword(user.email, body.currentPassword);
-  if (!ok) {
-    return NextResponse.json({ error: "كلمة المرور الحالية غير صحيحة." }, { status: 401 });
+  const email = await emailForUid(user.uid, user.email);
+  if (!email) {
+    return NextResponse.json({ error: "تعذر التحقق من الحساب." }, { status: 401 });
+  }
+  const verified = await verifyPassword(email, currentPassword);
+  if (!verified.ok) {
+    const mapped = mapFirebaseAuthError(verified.message);
+    return NextResponse.json(
+      {
+        error:
+          mapped === "اسم المستخدم أو كلمة المرور غير صحيحة."
+            ? "كلمة المرور الحالية غير صحيحة."
+            : mapped,
+      },
+      { status: 401 }
+    );
   }
 
   const displayNameAr = body.displayNameAr?.trim();
@@ -79,23 +91,30 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "اسم المستخدم مستخدم مسبقاً." }, { status: 400 });
   }
 
+  const newPassword = body.newPassword?.trim();
+  const newPasswordConfirm = body.newPasswordConfirm?.trim();
+  if (newPassword) {
+    if (newPassword.length < 6) {
+      return NextResponse.json({ error: "كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف." }, { status: 400 });
+    }
+    if (newPassword !== newPasswordConfirm) {
+      return NextResponse.json({ error: "كلمتا المرور الجديدتان غير متطابقتين." }, { status: 400 });
+    }
+    await adminAuth().updateUser(user.uid, { password: newPassword });
+  }
+
   const patch: Record<string, unknown> = {
     displayNameAr,
     displayName: displayNameAr,
     name: displayNameAr,
     username,
+    role: user.role,
+    email: user.email,
   };
   await syncTeacherRecord(user.uid, patch);
 
-  if (body.newPassword?.trim()) {
-    if (body.newPassword.trim().length < 6) {
-      return NextResponse.json({ error: "كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف." }, { status: 400 });
-    }
-    await adminAuth().updateUser(user.uid, { password: body.newPassword.trim() });
-  }
-
   const profile = await loadProfile(user.uid);
-  return NextResponse.json({ profile });
+  return NextResponse.json({ profile, passwordChanged: Boolean(newPassword) });
 }
 
 export async function PUT(request: Request) {

@@ -30,3 +30,11 @@ export function teacherMatchesQuery(
 ) {
   return arabicMatches(teacher.displayNameAr, query) || arabicMatches(teacher.username, query);
 }
+
+export function normalizeUsername(input: string) {
+  return normalizeArabic(input).replace(/\s+/g, "");
+}
+
+export function usernamesMatch(a: string, b: string) {
+  return Boolean(normalizeUsername(a)) && normalizeUsername(a) === normalizeUsername(b);
+}

@@ -65,8 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username,
-          password,
+          username: username.trim(),
+          password: password.trim(),
           role: options?.role,
           teacherId: options?.teacherId,
         }),

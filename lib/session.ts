@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { jwtVerify, SignJWT } from "jose";
+import { usernamesMatch } from "@/lib/arabic";
 import { adminDb } from "@/lib/firebase-admin";
 import { classById } from "@/lib/catalog";
 import { classIdsFromAssignments, subjectIdsFromAssignments } from "@/lib/teachers";
@@ -120,7 +121,7 @@ export async function loadProfile(uid: string): Promise<Profile | null> {
   };
 }
 
-export async function findUserByUsername(username: string): Promise<Profile | null> {
+async function findUserByExactUsername(username: string): Promise<Profile | null> {
   const users = await adminDb()
     .collection("users")
     .where("username", "==", username)
@@ -133,6 +134,35 @@ export async function findUserByUsername(username: string): Promise<Profile | nu
     .limit(1)
     .get();
   if (!teachers.empty) return loadProfile(teachers.docs[0].id);
+  return null;
+}
+
+export async function findUserByUsername(username: string): Promise<Profile | null> {
+  const trimmed = username.trim();
+  if (!trimmed) return null;
+
+  const exact = await findUserByExactUsername(trimmed);
+  if (exact) return exact;
+
+  const lower = trimmed.toLowerCase();
+  if (lower !== trimmed) {
+    const lowered = await findUserByExactUsername(lower);
+    if (lowered) return lowered;
+  }
+
+  const [users, teachers] = await Promise.all([
+    adminDb().collection("users").get(),
+    adminDb().collection("teachers").get(),
+  ]);
+  const seen = new Set<string>();
+  for (const doc of [...users.docs, ...teachers.docs]) {
+    if (seen.has(doc.id)) continue;
+    seen.add(doc.id);
+    const candidate = String(doc.data().username ?? "");
+    if (candidate && usernamesMatch(candidate, trimmed)) {
+      return loadProfile(doc.id);
+    }
+  }
   return null;
 }
 

@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
-import { authSignInUrl } from "@/lib/firebase-admin";
 import {
-  findUserByUsername,
-  loadProfile,
   createSessionToken,
+  loadProfile,
   SESSION_COOKIE,
   sessionCookieOptions,
 } from "@/lib/session";
+import {
+  mapFirebaseAuthError,
+  resolveStaffEmail,
+  signInWithEmailPassword,
+} from "@/lib/staff-auth";
 import { sessionTeacherId } from "@/lib/teachers";
 
 export const runtime = "nodejs";
-
-type AuthResponse = {
-  localId?: string;
-  email?: string;
-  error?: { message?: string };
-};
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
@@ -26,32 +23,20 @@ export async function POST(request: Request) {
     teacherId?: string;
   };
   const identifier = (body.username || body.email || "").trim();
-  const password = body.password;
+  const password = (body.password || "").trim();
   if (!identifier || !password) {
     return NextResponse.json({ error: "أدخل اسم المستخدم وكلمة المرور." }, { status: 400 });
   }
 
-  let email = identifier;
-  if (!identifier.includes("@")) {
-    const matched = await findUserByUsername(identifier);
-    if (!matched?.email) {
-      return NextResponse.json(
-        { error: "اسم المستخدم أو كلمة المرور غير صحيحة." },
-        { status: 401 }
-      );
-    }
-    email = matched.email;
+  const resolved = await resolveStaffEmail(identifier);
+  if ("error" in resolved) {
+    return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
 
-  const authRes = await fetch(authSignInUrl(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, returnSecureToken: true }),
-  });
-  const payload = (await authRes.json()) as AuthResponse;
-  if (!authRes.ok || !payload.localId || !payload.email) {
+  const { ok, payload } = await signInWithEmailPassword(resolved.email, password);
+  if (!ok || !payload.localId || !payload.email) {
     return NextResponse.json(
-      { error: "اسم المستخدم أو كلمة المرور غير صحيحة." },
+      { error: mapFirebaseAuthError(payload.error?.message) },
       { status: 401 }
     );
   }
