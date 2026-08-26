@@ -28,9 +28,6 @@ export function AppHeader({
           <h1 className="truncate text-base font-extrabold text-[#2563eb] sm:text-lg">
             الواجبات المدرسية
           </h1>
-          <p className="truncate text-xs text-slate-400">
-            تزامن لحظي ودعم غير متصل
-          </p>
         </div>
       </div>
       <ConnectionBadge />
