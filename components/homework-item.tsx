@@ -49,6 +49,11 @@ export function HomeworkItem({
               جديد الآن
             </span>
           ) : null}
+          {item.teacherNameAr ? (
+            <span className="max-w-full truncate rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+              الناشر: {item.teacherNameAr}
+            </span>
+          ) : null}
         </div>
         {canManage ? (
           <div className="flex items-center gap-1">
@@ -79,11 +84,6 @@ export function HomeworkItem({
       <h3 className="mt-3 max-w-full text-base font-extrabold break-words text-slate-900 [overflow-wrap:anywhere] [word-break:break-word]">
         {item.titleAr || item.title}
       </h3>
-      {item.teacherNameAr ? (
-        <p className="mt-1 max-w-full text-xs break-words text-slate-400 [overflow-wrap:anywhere] [word-break:break-word]">
-          نشر بواسطة: {item.teacherNameAr}
-        </p>
-      ) : null}
       {item.detailsAr || item.details ? (
         <p className="mt-2 max-w-full text-sm leading-7 break-words text-slate-500 [overflow-wrap:anywhere] [word-break:break-word]">
           {item.detailsAr || item.details}
