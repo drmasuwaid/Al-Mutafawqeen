@@ -268,17 +268,24 @@ export function TeacherDashboard({
 
 function TeacherAvatar() {
   return (
-    <span className="relative flex size-14 overflow-hidden rounded-full bg-blue-100 ring-2 ring-white/40 sm:size-16">
-      <svg viewBox="0 0 80 80" className="size-full">
-        <circle cx="40" cy="40" r="40" fill="#dbeafe" />
-        <circle cx="40" cy="30" r="14" fill="#f8d7b0" />
-        <ellipse cx="40" cy="64" rx="22" ry="18" fill="#1d4ed8" />
-        <rect x="18" y="28" width="44" height="8" rx="4" fill="#1e293b" opacity="0.85" />
-        <circle cx="28" cy="32" r="5" fill="none" stroke="#1e293b" strokeWidth="2" />
-        <circle cx="52" cy="32" r="5" fill="none" stroke="#1e293b" strokeWidth="2" />
-        <path d="M33 32h14" stroke="#1e293b" strokeWidth="2" />
-        <path d="M20 18c8-10 32-10 40 0" fill="none" stroke="#0f172a" strokeWidth="6" />
-      </svg>
+    <span
+      className="relative shrink-0 overflow-hidden rounded-full ring-2 ring-white/40"
+      style={{ width: 54, height: 54, background: "#fff" }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/teacher-avatar.png"
+        alt="المدرس"
+        width={54}
+        height={54}
+        style={{
+          width: 54,
+          height: 54,
+          borderRadius: "50%",
+          objectFit: "cover",
+          background: "#fff",
+        }}
+      />
     </span>
   );
 }
