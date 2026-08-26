@@ -27,9 +27,9 @@ export function HomeworkItem({
   const publishedAt = formatPublishedAt(item.createdAt);
 
   return (
-    <article className="soft-card p-5">
+    <article className="soft-card min-w-0 max-w-full overflow-hidden p-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
             {subject?.nameAr ?? "مادة"}
           </span>
@@ -76,12 +76,18 @@ export function HomeworkItem({
         ) : null}
       </div>
 
-      <h3 className="mt-3 text-base font-extrabold text-slate-900">{item.titleAr || item.title}</h3>
+      <h3 className="mt-3 max-w-full text-base font-extrabold break-words text-slate-900 [overflow-wrap:anywhere] [word-break:break-word]">
+        {item.titleAr || item.title}
+      </h3>
       {item.teacherNameAr ? (
-        <p className="mt-1 text-xs text-slate-400">نشر بواسطة: {item.teacherNameAr}</p>
+        <p className="mt-1 max-w-full text-xs break-words text-slate-400 [overflow-wrap:anywhere] [word-break:break-word]">
+          نشر بواسطة: {item.teacherNameAr}
+        </p>
       ) : null}
       {item.detailsAr || item.details ? (
-        <p className="mt-2 text-sm leading-7 text-slate-500">{item.detailsAr || item.details}</p>
+        <p className="mt-2 max-w-full text-sm leading-7 break-words text-slate-500 [overflow-wrap:anywhere] [word-break:break-word]">
+          {item.detailsAr || item.details}
+        </p>
       ) : null}
 
       <AttachmentGallery attachments={item.attachments} />

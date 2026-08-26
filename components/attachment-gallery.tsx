@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Download, FileText, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Eye, FileText, X } from "lucide-react";
 import { attachmentFrameClass, attachmentUrl } from "@/lib/attachment-url";
 import type { Attachment } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+function isPdf(file: Attachment) {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
 
 export function AttachmentGallery({ attachments }: { attachments: Attachment[] }) {
   const images = attachments.filter((file) => file.type.startsWith("image/"));
@@ -17,18 +21,18 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
   if (!attachments.length) return null;
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="mt-4 min-w-0 max-w-full space-y-3">
       {images.length ? (
-        <div>
+        <div className="min-w-0">
           <p className="mb-2 text-xs font-semibold text-slate-500">الصور ({images.length}):</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
             {images.map((file, index) => (
               <button
                 key={`${file.name}-${index}`}
                 type="button"
                 onClick={() => setImageIndex(index)}
                 className={cn(
-                  "overflow-hidden rounded-lg bg-white",
+                  "h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-white",
                   attachmentFrameClass()
                 )}
               >
@@ -36,7 +40,7 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
                 <img
                   src={attachmentUrl(file)}
                   alt={file.name}
-                  className="h-16 w-16 object-cover"
+                  className="h-full w-full object-cover"
                 />
               </button>
             ))}
@@ -47,36 +51,45 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
       {docs.length ? (
         <div className="space-y-2">
           <p className="text-xs font-semibold text-slate-500">الملفات ({docs.length}):</p>
-          {docs.map((file, index) => (
-            <div
-              key={`${file.name}-${index}`}
+          {docs.map((file, index) => {
+            const previewable = isPdf(file);
+            return (
+              <div
+                key={`${file.name}-${index}`}
                 className={cn(
-                  "flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2",
+                  "flex min-w-0 flex-col gap-2 rounded-xl bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between",
                   attachmentFrameClass()
                 )}
-            >
-              <span className="flex min-w-0 items-center gap-2 text-sm text-slate-700">
-                <FileText className="size-4 shrink-0 text-blue-500" />
-                <span className="truncate">{file.name}</span>
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="min-h-10 rounded-lg bg-blue-50 px-3 text-xs font-bold text-blue-700"
-                  onClick={() => setPdf(file)}
-                >
-                  معاينة
-                </button>
-                <a
-                  className="inline-flex min-h-10 items-center rounded-lg bg-white px-3 text-xs font-bold text-slate-600 ring-1 ring-slate-200"
-                  href={attachmentUrl(file, { download: true })}
-                  download={file.name}
-                >
-                  تحميل
-                </a>
+              >
+                <span className="flex min-w-0 items-center gap-2 text-sm text-slate-700">
+                  <FileText className="size-4 shrink-0 text-blue-500" />
+                  <span className="min-w-0 break-words [overflow-wrap:anywhere] [word-break:break-word]">
+                    {file.name}
+                  </span>
+                </span>
+                <div className="flex shrink-0 gap-2">
+                  {previewable ? (
+                    <button
+                      type="button"
+                      className="inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg bg-blue-50 px-3 text-xs font-bold text-blue-700 sm:flex-none"
+                      onClick={() => setPdf(file)}
+                    >
+                      <Eye className="size-3.5" />
+                      معاينة
+                    </button>
+                  ) : null}
+                  <a
+                    className="inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg bg-white px-3 text-xs font-bold text-slate-600 ring-1 ring-slate-200 sm:flex-none"
+                    href={attachmentUrl(file, { download: true })}
+                    download={file.name}
+                  >
+                    <Download className="size-3.5" />
+                    تحميل
+                  </a>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : null}
 
