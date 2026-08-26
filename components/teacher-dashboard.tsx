@@ -5,6 +5,7 @@ import { GraduationCap, Loader2, LogOut, Plus, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { AccountDialog } from "@/components/account-dialog";
+import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { EmptyHomework, HomeworkItem } from "@/components/homework-item";
 import { PublishDialog } from "@/components/publish-dialog";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,8 @@ export function TeacherDashboard({
   const [publishOpen, setPublishOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [editing, setEditing] = useState<Homework | null>(null);
+  const [deleting, setDeleting] = useState<Homework | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   if (!profile) return null;
   const teacher = profile;
@@ -51,12 +54,26 @@ export function TeacherDashboard({
     return false;
   }
 
-  async function removeHomework(item: Homework) {
+  function requestDeleteHomework(item: Homework) {
     if (!assertOwnsHomework(item, "delete")) return;
-    const res = await fetch(`/api/homework/${item.id}`, { method: "DELETE" });
-    if (!res.ok) {
-      const data = (await res.json()) as { error?: string };
-      toast.error(data.error || "تعذر حذف الواجب");
+    setDeleting(item);
+  }
+
+  async function confirmDeleteHomework() {
+    if (!deleting) return;
+    setDeleteBusy(true);
+    try {
+      const res = await fetch(`/api/homework/${deleting.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        throw new Error(data.error || "تعذر حذف الواجب");
+      }
+      setDeleting(null);
+      toast.success("تم حذف الواجب.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حذف الواجب");
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -170,7 +187,7 @@ export function TeacherDashboard({
                       setEditing(row);
                       setPublishOpen(true);
                     }}
-                    onDelete={removeHomework}
+                    onDelete={requestDeleteHomework}
                   />
                 ))}
               </div>
@@ -196,6 +213,16 @@ export function TeacherDashboard({
         onOpenChange={setAccountOpen}
         profile={profile}
         onSaved={(next) => setProfile(next)}
+      />
+      <ConfirmDeleteDialog
+        open={Boolean(deleting)}
+        onOpenChange={(open) => {
+          if (!open && !deleteBusy) setDeleting(null);
+        }}
+        title="تأكيد الحذف"
+        description="هل أنت متأكد من رغبتك في حذف هذا الواجب؟ لا يمكن التراجع عن هذا الإجراء."
+        busy={deleteBusy}
+        onConfirm={() => void confirmDeleteHomework()}
       />
     </div>
   );
