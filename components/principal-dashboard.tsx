@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, GraduationCap, Loader2, LogOut, Pencil, Plus, Search, Settings, Trash2, UserPlus } from "lucide-react";
+import { Building2, Loader2, LogOut, Pencil, Plus, Search, Settings, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { AccountDialog } from "@/components/account-dialog";
 import { AddSubjectDialog } from "@/components/add-subject-dialog";
 import { TeacherFormDialog } from "@/components/add-teacher-dialog";
 import { AppHeader } from "@/components/app-header";
+import { TeacherAvatar } from "@/components/teacher-avatar";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { teacherMatchesQuery } from "@/lib/arabic";
@@ -171,9 +172,11 @@ export function PrincipalDashboard() {
                 return (
                   <article key={teacher.id} className="soft-card p-4">
                     <div className="flex items-start gap-3">
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-                        <GraduationCap className="size-4" />
-                      </span>
+                      <TeacherAvatar
+                        nameAr={teacher.displayNameAr}
+                        size={40}
+                        className="ring-1 ring-indigo-100"
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="font-extrabold text-slate-900">{teacher.displayNameAr}</p>
                         <p className="text-xs text-slate-400">اسم المستخدم: {teacher.username}</p>

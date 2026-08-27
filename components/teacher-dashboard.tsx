@@ -8,9 +8,11 @@ import { AccountDialog } from "@/components/account-dialog";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { EmptyHomework, HomeworkItem } from "@/components/homework-item";
 import { PublishDialog } from "@/components/publish-dialog";
+import { TeacherAvatar } from "@/components/teacher-avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { classById } from "@/lib/catalog";
+import { teacherGreetingAr } from "@/lib/teacher-gender";
 import { groupAssignmentsByGrade, isHomeworkOwner } from "@/lib/teachers";
 import type { Homework, LiveSnapshot, SubjectGrade } from "@/lib/types";
 
@@ -85,9 +87,12 @@ export function TeacherDashboard({
         <section className="overflow-hidden rounded-[24px] bg-[#3b82f6] p-4 text-white shadow-lg shadow-blue-500/20 sm:rounded-[28px] sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-center gap-3">
-              <TeacherAvatar />
+              <TeacherAvatar
+                nameAr={profile.displayNameAr}
+                className="ring-2 ring-white/40"
+              />
               <div className="min-w-0">
-                <p className="text-sm text-blue-100">أهلاً بك، أستاذ</p>
+                <p className="text-sm text-blue-100">{teacherGreetingAr(profile.displayNameAr)}</p>
                 <h2 className="truncate text-xl font-extrabold sm:text-2xl">{profile.displayNameAr}</h2>
               </div>
             </div>
@@ -225,29 +230,5 @@ export function TeacherDashboard({
         onConfirm={() => void confirmDeleteHomework()}
       />
     </div>
-  );
-}
-
-function TeacherAvatar() {
-  return (
-    <span
-      className="relative shrink-0 overflow-hidden rounded-full ring-2 ring-white/40"
-      style={{ width: 54, height: 54, background: "#fff" }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/teacher-avatar.png"
-        alt="المدرس"
-        width={54}
-        height={54}
-        style={{
-          width: 54,
-          height: 54,
-          borderRadius: "50%",
-          objectFit: "cover",
-          background: "#fff",
-        }}
-      />
-    </span>
   );
 }
