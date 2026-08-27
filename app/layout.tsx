@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -14,6 +14,13 @@ export const metadata: Metadata = {
   description:
     "منصة الواجبات المدرسية لمدرسة المتفوقين مع تزامن لحظي ودعم العمل دون إنترنت.",
   manifest: "/manifest.webmanifest",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

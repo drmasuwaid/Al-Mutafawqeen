@@ -130,13 +130,21 @@
 }
 
 .native-select {
-  @apply h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-blue-400 focus:ring-[3px] focus:ring-blue-500/15;
+  @apply h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none transition focus:border-blue-400 focus:ring-[3px] focus:ring-blue-500/15;
+  font-size: 16px;
   direction: rtl;
   text-align: right;
 }
 
 .field-input {
-  @apply h-12 rounded-xl border-slate-200 bg-white px-4 text-sm;
+  @apply h-12 rounded-xl border-slate-200 bg-white px-4;
+  font-size: 16px;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+textarea,
+select {
+  font-size: 16px;
 }
 
 .rtl-field {

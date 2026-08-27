@@ -241,7 +241,7 @@ export function PublishDialog({
         <label className="block space-y-2">
           <span className="text-sm font-medium text-slate-600">نص وتفاصيل الواجب:</span>
           <textarea
-            className="min-h-28 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-[3px] focus:ring-blue-500/15"
+            className="min-h-28 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-blue-400 focus:ring-[3px] focus:ring-blue-500/15"
             placeholder="اكتب التعليمات والمسائل والصفحات المطلوب حلها بالتفصيل..."
             value={detailsAr}
             onChange={(event) => setDetailsAr(event.target.value)}
@@ -304,16 +304,20 @@ export function PublishDialog({
           </ul>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => void publish()}
             disabled={busy}
-            className="flex h-12 flex-1 items-center justify-center rounded-xl bg-[#3b82f6] text-sm font-bold text-white hover:bg-[#2563eb] disabled:opacity-60"
+            className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl bg-[#3b82f6] px-4 py-3 text-sm font-bold text-white hover:bg-[#2563eb] disabled:opacity-60"
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : homework ? "حفظ التعديلات" : "نشر الواجب الآن"}
           </button>
-          <button type="button" onClick={() => onOpenChange(false)} className="h-12 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600"
+          >
             إلغاء
           </button>
         </div>
