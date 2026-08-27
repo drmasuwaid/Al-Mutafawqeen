@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { NativeSelect } from "@/components/native-select";
+import { TeacherNameCombobox } from "@/components/teacher-name-combobox";
 import { useAuth } from "@/hooks/use-auth";
 import type { TeacherSummary } from "@/lib/types";
 
@@ -83,7 +83,7 @@ export function StaffAccessDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-5 text-right sm:max-w-[480px]" dir="rtl" showCloseButton={false}>
+      <DialogContent className="gap-5 overflow-visible text-right sm:max-w-[480px]" dir="rtl" showCloseButton={false}>
         <button
           type="button"
           className="absolute top-4 left-4 text-slate-400 transition hover:text-slate-600"
@@ -164,25 +164,16 @@ export function StaffAccessDialog({
             <Header icon={<Lock className="size-5" />} title="تسجيل دخول المدرس" subtitle="اختر اسمك أبجدياً ثم أكّد بيانات الدخول" />
             <div className="space-y-2 text-right">
               <span className="block text-sm font-medium text-slate-600">اسم المدرس (أ - ي):</span>
-              <NativeSelect
-                dir="rtl"
+              <TeacherNameCombobox
+                teachers={teachers}
                 value={teacherId}
-                disabled={loadingTeachers}
-                onChange={(event) => {
-                  const id = event.target.value;
-                  setTeacherId(id);
-                  const next = teachers.find((item) => item.id === id);
-                  setUsername(next?.username ?? "");
+                loading={loadingTeachers}
+                onChange={(teacher) => {
+                  setTeacherId(teacher?.id ?? "");
+                  setUsername(teacher?.username ?? "");
                   setPassword("");
                 }}
-              >
-                <option value="">{loadingTeachers ? "جاري تحميل الأسماء..." : "-- اختر اسم المدرس --"}</option>
-                {teachers.map((teacher) => (
-                  <option key={teacher.id} value={teacher.id}>
-                    {teacher.displayNameAr}
-                  </option>
-                ))}
-              </NativeSelect>
+              />
               {!loadingTeachers && teachers.length === 0 ? (
                 <p className="text-xs text-slate-400">لا يوجد مدرسون مسجلون بعد. يضيفهم مدير المدرسة من بوابته.</p>
               ) : null}
