@@ -152,12 +152,22 @@ export function TeacherNameCombobox({
                       onMouseEnter={() => setActiveIndex(index)}
                       onClick={() => choose(teacher)}
                       className={cn(
-                        "flex w-full items-center justify-between gap-2 px-4 py-2.5 text-right text-sm",
+                        "flex w-full items-center gap-2 px-4 py-2.5 text-right text-sm",
                         active ? "bg-blue-50 text-blue-800" : "text-slate-800",
                         isSelected && "font-bold"
                       )}
                     >
-                      <span className="min-w-0 truncate">{teacher.displayNameAr}</span>
+                      <span className="flex min-w-0 flex-1 items-center gap-2">
+                        <span
+                          className={cn(
+                            "w-6 shrink-0 tabular-nums",
+                            active ? "text-blue-600" : "text-slate-400"
+                          )}
+                        >
+                          {index + 1}.
+                        </span>
+                        <span className="min-w-0 truncate">{teacher.displayNameAr}</span>
+                      </span>
                       {isSelected ? <Check className="size-4 shrink-0 text-blue-600" /> : null}
                     </button>
                   </li>
