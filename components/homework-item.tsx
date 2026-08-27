@@ -82,7 +82,10 @@ export function HomeworkItem({
         {item.titleAr || item.title}
       </h3>
       {item.detailsAr || item.details ? (
-        <p className="mt-2 max-w-full text-sm leading-7 break-words text-slate-500 [overflow-wrap:anywhere] [word-break:break-word]">
+        <p
+          className="mt-2 max-w-full break-words text-slate-800 [overflow-wrap:anywhere] [word-break:break-word]"
+          style={{ fontWeight: 700, lineHeight: 1.6 }}
+        >
           {item.detailsAr || item.details}
         </p>
       ) : null}

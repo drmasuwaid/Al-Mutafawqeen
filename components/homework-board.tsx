@@ -151,7 +151,11 @@ function HomeworkCard({
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {details ? <p className="text-sm leading-6 text-muted-foreground">{details}</p> : null}
+            {details ? (
+              <p className="break-words text-slate-800" style={{ fontWeight: 700, lineHeight: 1.6 }}>
+                {details}
+              </p>
+            ) : null}
             <p className="text-xs text-muted-foreground">
               {t.assignedBy} {teacher}
               {profile.role !== "student"
