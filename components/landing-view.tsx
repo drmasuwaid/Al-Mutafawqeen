@@ -15,7 +15,7 @@ export function LandingView() {
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pb-8 sm:px-6">
         <AppHeader />
 
-        <section className="soft-card mx-auto mt-2 w-full max-w-3xl px-6 py-10 text-center sm:px-12">
+        <section className="soft-card mt-2 w-full px-6 py-10 text-center sm:px-12">
           <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
             منصة الواجبات الذكية
           </span>
