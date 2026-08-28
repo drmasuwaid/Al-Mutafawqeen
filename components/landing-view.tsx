@@ -1,6 +1,6 @@
 "use client";
 
-import { GraduationCap, Presentation, ShieldCheck } from "lucide-react";
+import { GraduationCap, Presentation } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { StudentLoginDialog } from "@/components/student-login-dialog";
 import { StaffAccessDialog } from "@/components/staff-access-dialog";
@@ -47,20 +47,6 @@ export function LandingView() {
             onClick={() => setTeacherOpen(true)}
           />
         </section>
-
-        <aside className="mt-6 flex flex-col items-start gap-4 rounded-[22px] bg-emerald-50 px-4 py-4 ring-1 ring-emerald-100 sm:flex-row sm:items-center sm:px-5">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-            <ShieldCheck className="size-5" />
-          </span>
-          <div>
-            <p className="font-bold text-emerald-900">
-              معمارية متطورة للعمل دون إنترنت (Offline-First)
-            </p>
-            <p className="mt-1 text-sm leading-6 text-emerald-800/80">
-              يمكنك تصفح الواجبات ونشرها وأنت غير متصل، وستُزامَن تلقائياً عند عودة الاتصال.
-            </p>
-          </div>
-        </aside>
       </div>
 
       <StudentLoginDialog open={studentOpen} onOpenChange={setStudentOpen} />
