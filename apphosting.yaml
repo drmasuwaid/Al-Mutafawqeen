@@ -1,12 +1,38 @@
 # Firebase App Hosting — GitHub + Cloud Run for this Next.js app
 # https://firebase.google.com/docs/app-hosting/configure
 #
-# Set SESSION_SECRET (and API keys if FIREBASE_WEBAPP_CONFIG is not injected)
-# in Firebase Console → App Hosting → your backend → Environment.
-# Do not put secrets in this file.
+# SESSION_SECRET must stay in the Firebase Console as a secret (Runtime).
+# Do not put it in this file.
 runConfig:
   minInstances: 0
   maxInstances: 4
   concurrency: 80
   cpu: 1
   memoryMiB: 512
+
+env:
+  - variable: FIREBASE_PROJECT_ID
+    value: al-mutafawqeen-homework
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: al-mutafawqeen-homework
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: FIREBASE_WEB_API_KEY
+    value: AIzaSyB9a8DvM4XresJCWpaNWHG3nSMM5WNgMZU
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyB9a8DvM4XresJCWpaNWHG3nSMM5WNgMZU
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: FIREBASE_STORAGE_BUCKET
+    value: al-mutafawqeen-homework.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
