@@ -17,14 +17,13 @@ export function LandingView() {
 
         <section className="soft-card mx-auto mt-2 w-full max-w-3xl px-6 py-10 text-center sm:px-12">
           <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-            المنصة الذكية المتكاملة
+            منصة الواجبات الذكية
           </span>
           <h2 className="mt-5 text-2xl font-extrabold text-slate-900 sm:text-4xl">
             مرحباً بك في منصة الواجبات
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-500 sm:text-base">
-            تابع الواجبات والملاحظات اليومية لحظة بلحظة، مع إمكانية التصفح دون اتصال
-            بالإنترنت ومزامنة فورية عند عودة الشبكة.
+            تابع الواجبات والملاحظات اليومية لحظة بلحظة.
           </p>
         </section>
 
