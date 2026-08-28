@@ -12,6 +12,7 @@
     "seed": "node scripts/seed.mjs",
     "seed:production": "node scripts/seed-production.mjs",
     "check:production": "node scripts/check-production-env.mjs",
+    "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes,storage",
     "build": "next build",
     "start": "next start --port 43123 --hostname 0.0.0.0",
     "lint": "eslint"

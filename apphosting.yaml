@@ -1,5 +1,9 @@
-# Firebase App Hosting (Cloud Run). Alternative to Vercel.
+# Firebase App Hosting — GitHub + Cloud Run for this Next.js app
 # https://firebase.google.com/docs/app-hosting/configure
+#
+# Set SESSION_SECRET (and API keys if FIREBASE_WEBAPP_CONFIG is not injected)
+# in Firebase Console → App Hosting → your backend → Environment.
+# Do not put secrets in this file.
 runConfig:
   minInstances: 0
   maxInstances: 4

@@ -2,7 +2,7 @@
 
 تطبيق واجبات لمدرسة المتفوقين الثانوية: واجهة عربية RTL، مع تزامن لحظي عبر Firebase ودعم التصفح دون اتصال.
 
-هذا التطبيق يحتاج خادم Node.js (ليس ملفاً HTML ثابتاً). التشغيل المحلي يستخدم محاكيات Firebase. النشر العلني يحتاج مشروع Firebase حقيقي واستضافة مثل Vercel.
+هذا التطبيق يحتاج خادم Node.js (ليس ملفاً HTML ثابتاً). التشغيل المحلي يستخدم محاكيات Firebase. النشر العلني يتم عبر **GitHub + Firebase App Hosting**.
 
 ## التشغيل محلياً
 
@@ -52,83 +52,94 @@ npm run dev
 - المدرس: اختيار الاسم من قائمة أبجدية ثم الدخول للوحة الزرقاء لاستعراض المراحل المسندة ونشر واجب مع مرفقات
 - بث مباشر من Firestore عبر Server-Sent Events، مع تخزين محلي للوحة عند انقطاع الشبكة
 
-## النشر على الإنترنت
+## النشر على الإنترنت (GitHub + Firebase)
 
-روابط `trycloudflare` للمعاينة مؤقتة وليست نشراً رسمياً. للنشر للعالم تحتاج ثلاثة أشياء:
+روابط `trycloudflare` للمعاينة مؤقتة وليست نشراً رسمياً. المسار الرسمي لهذا التطبيق:
 
-1. مستودع Git (إن لم يُنشأ بعد، استخدم زر **Create repo** في Cursor ثم ادفع `main`).
-2. مشروع Firebase على [Google Cloud / Firebase Console](https://console.firebase.google.com/) مع **Blaze** إذا لزم التخزين أو الاستضافة المدفوعة حسب الاستخدام.
-3. استضافة Node.js — **Vercel** هو المسار الموصى به لهذا التطبيق (Next.js).
+1. مستودع **GitHub** (فرع `main`)
+2. مشروع **Firebase** على [console.firebase.google.com](https://console.firebase.google.com/)
+3. **App Hosting** يربط المستودع وينشر Next.js على Cloud Run بعد كل `git push`
+
+App Hosting يتطلب خطة **Blaze** (الدفع حسب الاستخدام؛ ضمن الحصص المجانية غالباً ما يبقى المبلغ صفراً لمدرسة بهذا الحجم).
 
 لا تضع مفاتيح حساب الخدمة أو `SESSION_SECRET` داخل Git. لا تشغّل `npm run seed` على مشروع Firebase الحي؛ هذا الأمر يمسح البيانات وهو للمحاكي فقط.
 
-### 1) إعداد Firebase
+### 1) مستودع GitHub
 
-1. أنشئ مشروعاً جديداً (مثلاً اسم المدرسة بالإنكليزية).
+1. أنشئ مستودعاً جديداً فارغاً على GitHub (بدون README إن طُلب منك).
+2. من جهازك أو من Cursor ادفع الفرع `main`:
+
+```bash
+git remote add github https://github.com/USER/REPO.git
+git push -u github main
+```
+
+استبدل `USER/REPO` بمستودعك. Firebase App Hosting يتصل بـ GitHub فقط.
+
+### 2) مشروع Firebase
+
+1. أنشئ مشروعاً جديداً في [Firebase Console](https://console.firebase.google.com/).
 2. فعّل **Authentication** → Sign-in method → **Email/Password**.
-3. أنشئ قاعدة **Cloud Firestore** (وضع الإنتاج).
+3. أنشئ **Cloud Firestore** (وضع الإنتاج، اختر موقعاً قريباً مثل `eur3` أو `me-central1`).
 4. فعّل **Storage**.
-5. من Project settings انسخ:
-   - **Project ID**
-   - **Web API Key**
-   - اسم سلة Storage (غالباً `PROJECT_ID.appspot.com`)
-6. من **Project settings → Service accounts** أنشئ مفتاح JSON لحساب الخدمة. احفظ الملف خارج المستودع، مثلاً `service-account.json`.
+5. من Project settings انسخ **Project ID** و **Web API Key** واسم سلة Storage.
 
-انشر القواعد والفهارس من جهازك بعد `firebase login`:
+انشر القواعد والفهارس من جهازك بعد `npx firebase login`:
 
 ```bash
 npx firebase use --add
-npx firebase deploy --only firestore:rules,firestore:indexes,storage
+npm run deploy:rules
 ```
 
-### 2) متغيرات البيئة
+### 3) App Hosting (الربط والنشر)
 
-انسخ `env.example` إلى `.env.local` للتجربة ضد Firebase الحقيقي، أو أضف نفس القيم في لوحة Vercel → Settings → Environment Variables (Production):
+1. في Firebase Console افتح **App Hosting** (تحت Hosting & Serverless) → **Get started**.
+2. إن طُلب، رقِّ الخطة إلى **Blaze**.
+3. المنطقة: أقرب للمدرسة، مثلاً `europe-west1` أو `me-central1`.
+4. **Connect to GitHub** → صرّح لتطبيق Firebase على GitHub → اختر المستودع وفرع `main`.
+5. جذر التطبيق: `/` (جذر المستودع).
+6. فعّل Automatic rollouts.
+7. أنشئ **Firebase web app** واربطه بالـ backend حتى يُحقَن `FIREBASE_WEBAPP_CONFIG` تلقائياً.
+8. قبل أو بعد أول نشر، أضف متغيرات البيئة للـ backend:
 
-| المتغير | القيمة |
-| --- | --- |
-| `FIREBASE_PROJECT_ID` | معرّف المشروع |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | نفس المعرّف |
-| `FIREBASE_WEB_API_KEY` | Web API Key |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | نفس المفتاح |
-| `FIREBASE_STORAGE_BUCKET` | `PROJECT_ID.appspot.com` |
-| `FIREBASE_SERVICE_ACCOUNT` | محتوى JSON لحساب الخدمة في سطر واحد، أو Base64 |
-| `SESSION_SECRET` | سر جلسة قوي: `openssl rand -base64 48` |
+| المتغير | متى | ملاحظات |
+| --- | --- | --- |
+| `SESSION_SECRET` | Runtime، سرّ | `openssl rand -base64 48` — إلزامي |
+| `FIREBASE_PROJECT_ID` | Build + Runtime | إن لم يُحقَن الإعداد تلقائياً |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Build + Runtime | نفس المعرّف |
+| `FIREBASE_WEB_API_KEY` | Runtime | Web API Key |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Build + Runtime | نفس المفتاح |
+| `FIREBASE_STORAGE_BUCKET` | Runtime | غالباً `PROJECT_ID.appspot.com` |
 
-اترك `FIRESTORE_EMULATOR_HOST` و`FIREBASE_AUTH_EMULATOR_HOST` و`FIREBASE_STORAGE_EMULATOR_HOST` فارغة.
+لا تضف `FIRESTORE_EMULATOR_HOST` ولا بقية متغيرات المحاكي.
 
-للتحقق محلياً:
+9. **Finish and deploy**. العنوان يكون بالشكل:
 
-```bash
-npm run check:production
-```
+`https://BACKEND_ID--PROJECT_ID.REGION.hosted.app`
 
-### 3) بذرة الإنتاج (مرة واحدة، آمنة)
+كل دفع لاحق إلى `main` على GitHub يعيد النشر تلقائياً.
 
-تنشئ الصفوف والمواد الناقصة وحساب مدير واحد إن لم يوجد مدير. **لا تمسح** المدرسين ولا الواجبات ولا تعيد كلمات المرور.
+10. افتح `/api/health` — يجب أن ترى `"ok": true` و `"emulator": false`.
+
+### 4) بذرة الإنتاج (مرة واحدة، آمنة)
+
+من جهازك، بعد تنزيل ملف حساب الخدمة من Project settings → Service accounts:
 
 ```bash
 FIREBASE_SERVICE_ACCOUNT_PATH=./service-account.json npm run seed:production
 ```
 
-إذا لم تضبط `PRINCIPAL_PASSWORD` تُولَّد كلمة مرور وتُطبع مرة واحدة في الطرفية. احفظها. الحساب الافتراضي للمدير: اسم المستخدم `noura`.
+تنشئ الصفوف والمواد الناقصة وحساب مدير واحد إن لم يوجد مدير. **لا تمسح** المدرسين ولا الواجبات ولا تعيد كلمات المرور.
+
+إذا لم تضبط `PRINCIPAL_PASSWORD` تُولَّد كلمة مرور وتُطبع مرة واحدة. احفظها. اسم المستخدم الافتراضي للمدير: `noura`.
 
 بعد الدخول كمدير أضف المدرسين من لوحة المدرسة. لا تعتمد على حسابات المحاكي (`ahmed` / `layla` / `omar`) في الموقع العلني.
 
-### 4) النشر على Vercel
-
-1. اربط المستودع في [vercel.com](https://vercel.com) (Import Git Repository).
-2. Framework Preset: Next.js. أمر البناء `npm run build`. أمر التشغيل يضبطه Vercel تلقائياً.
-3. أضف متغيرات البيئة أعلاه لكل من Production (و Preview إن أردت).
-4. Deploy. العنوان يصبح `https://….vercel.app`. يمكنك لاحقاً ربط نطاق المدرسة.
-5. افتح `/api/health` — يجب أن ترى `"ok": true` و`"emulator": false`.
-
-البث اللحظي (SSE) يعمل على مسار `/api/homework/stream` لمدة تصل إلى 60 ثانية لكل اتصال ثم يعيد العميل الاتصال. هذا مناسب لخطة Vercel الاعتيادية.
-
-بديل: [Firebase App Hosting](https://firebase.google.com/docs/app-hosting) عبر الملف `apphosting.yaml` إذا فضّلت البقاء داخل Google Cloud.
-
 ### 5) بعد النشر
 
-- افتح الموقع على الهاتف وتحقق من دخول الطلاب (بدون كلمة مرور) ودخول المدير.
-- غيّر كلمة مرور المدير من لوحة الحساب إن كانت مولَّدة.
-- لا تعِد تشغيل `npm run dev` ضد مشروع الإنتاج؛ أمر التطوير يوجّه المحاكي ويمسح بياناته المحلية فقط، لكنه لا يجب أن يحمل مفاتيح الإنتاج.
+- افتح الموقع على الهاتف: دخول الطلاب (بدون كلمة مرور) ثم دخول المدير.
+- غيّر كلمة مرور المدير إن كانت مولَّدة.
+- يمكنك لاحقاً ربط نطاق المدرسة من App Hosting → Custom domain.
+- لا تشغّل `npm run dev` بمفاتيح الإنتاج؛ أمر التطوير للمحاكي المحلي فقط.
+
+بديل: يمكن نشر نفس المستودع على Vercel إذا فضّلت ذلك لاحقاً (`vercel.json` موجود). المسار المعتمد هنا هو Firebase.

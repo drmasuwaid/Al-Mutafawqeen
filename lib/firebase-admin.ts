@@ -20,11 +20,24 @@ function isLiveProduction() {
   return process.env.NODE_ENV === "production" && !emulatorHostsSet();
 }
 
+function webAppConfig(): { apiKey?: string; projectId?: string; storageBucket?: string } | null {
+  const raw = process.env.FIREBASE_WEBAPP_CONFIG;
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as { apiKey?: string; projectId?: string; storageBucket?: string };
+  } catch {
+    return null;
+  }
+}
+
 export function projectId() {
+  const config = webAppConfig();
   const id =
     process.env.FIREBASE_PROJECT_ID ||
     process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
     process.env.GCLOUD_PROJECT ||
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    config?.projectId ||
     "";
   if (id) return id;
   if (isLiveProduction()) {
@@ -34,7 +47,11 @@ export function projectId() {
 }
 
 function storageBucket() {
-  return process.env.FIREBASE_STORAGE_BUCKET || `${projectId()}.appspot.com`;
+  return (
+    process.env.FIREBASE_STORAGE_BUCKET ||
+    webAppConfig()?.storageBucket ||
+    `${projectId()}.appspot.com`
+  );
 }
 
 function parseServiceAccountJson(raw: string): ServiceAccount {
@@ -87,7 +104,9 @@ function hasGoogleDefaultCredentials() {
   return Boolean(
     process.env.GOOGLE_APPLICATION_CREDENTIALS ||
       process.env.K_SERVICE ||
+      process.env.K_REVISION ||
       process.env.FIREBASE_CONFIG ||
+      process.env.FIREBASE_WEBAPP_CONFIG ||
       process.env.GOOGLE_CLOUD_PROJECT
   );
 }
@@ -138,7 +157,10 @@ export function adminBucket() {
 
 export function webApiKey() {
   const apiKey =
-    process.env.FIREBASE_WEB_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
+    process.env.FIREBASE_WEB_API_KEY ||
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+    webAppConfig()?.apiKey ||
+    "";
   if (apiKey) return apiKey;
   if (emulatorHostsSet()) return "demo-api-key";
   throw new Error("FIREBASE_WEB_API_KEY or NEXT_PUBLIC_FIREBASE_API_KEY is required.");
