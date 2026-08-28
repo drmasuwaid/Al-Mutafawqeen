@@ -20,7 +20,7 @@ export function LandingView() {
             البوابة الذكية
           </span>
           <h2 className="mt-5 text-2xl font-extrabold text-slate-900 sm:text-4xl">
-            مرحباً بك في منصة الواجبات
+            ثانوية المتفوقين للبنين في الانبار
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-500 sm:text-base">
             تابع الواجبات والملاحظات اليومية لحظة بلحظة.
