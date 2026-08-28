@@ -1,6 +1,8 @@
 # منصة الواجبات المدرسية
 
-تطبيق واجبات لمدرسة المتفوقين الثانوية: واجهة عربية RTL مطابقة للمنصة الأصلية، مع تزامن لحظي عبر Firebase ودعم التصفح دون اتصال.
+تطبيق واجبات لمدرسة المتفوقين الثانوية: واجهة عربية RTL، مع تزامن لحظي عبر Firebase ودعم التصفح دون اتصال.
+
+هذا التطبيق يحتاج خادم Node.js (ليس ملفاً HTML ثابتاً). التشغيل المحلي يستخدم محاكيات Firebase. النشر العلني يحتاج مشروع Firebase حقيقي واستضافة مثل Vercel.
 
 ## التشغيل محلياً
 
@@ -22,7 +24,7 @@ npm run dev
 
 لتجربة واجبات جاهزة اختر **الثاني متوسط** و **شعبة أ**.
 
-### دخول الكادر الإداري والتدريسي
+### دخول الكادر الإداري والتدريسي (المحاكي المحلي فقط)
 
 من الصفحة الرئيسية اختر **واجهة الكادر الإداري والتدريسي** ثم حدد الصفة:
 
@@ -36,9 +38,11 @@ npm run dev
 | `layla` | `LiveSync2026` | ليلى الخزرجي (اللغة العربية) |
 | `omar` | `LiveSync2026` | عمر الجبوري (الرياضيات) |
 
+هذه الحسابات التجريبية تُنشأ داخل المحاكي المحلي فقط. حسابات الإنتاج تُنشأ من لوحة المدير أو عبر `npm run seed:production` (مدير واحد، بدون مسح المدرسين أو الواجبات).
+
 كل مدرس له معرّف ثابت `teacher_id` (لا يتغير عند تعديل اسم المستخدم). كلمة المرور محفوظة في Firebase Auth وليس في وثيقة المدرس. تعديل أو حذف الواجب متاح لصاحب `created_by` فقط. الواجبات تُحذف تلقائياً بعد 14 يوماً من النشر.
 
-المرفقات (صور وPDF) تُحفظ في **Firebase Storage** مثل تطبيق العيادة: وثيقة الواجب في Firestore تحتوي فقط على الاسم والنوع والحجم ومسار الملف، بينما البايتات نفسها في السلة. العرض والتحميل يمرّان عبر `/api/attachments` بعد التحقق من الجلسة والصف.
+المرفقات (صور وPDF) تُحفظ في **Firebase Storage**. وثيقة الواجب في Firestore تحتوي فقط على الاسم والنوع والحجم ومسار الملف. العرض والتحميل يمرّان عبر `/api/attachments` بعد التحقق من الجلسة والصف.
 
 ## ماذا يفعل التطبيق
 
@@ -48,13 +52,83 @@ npm run dev
 - المدرس: اختيار الاسم من قائمة أبجدية ثم الدخول للوحة الزرقاء لاستعراض المراحل المسندة ونشر واجب مع مرفقات
 - بث مباشر من Firestore عبر Server-Sent Events، مع تخزين محلي للوحة عند انقطاع الشبكة
 
-## مشروع Firebase الخاص بك
+## النشر على الإنترنت
 
-1. فعّل Authentication (Email/Password) و Cloud Firestore و **Storage**.
-2. انسخ `env.example` إلى `.env.local`.
-3. انشر `firebase/firestore.rules` و `firebase/storage.rules`.
-4. ضع حساب الخدمة في `FIREBASE_SERVICE_ACCOUNT` واسم السلة في `FIREBASE_STORAGE_BUCKET` إن لزم.
-5. أنشئ وثائق `users/{uid}` بنفس الحقول (role, username, classIds).
-6. شغّل `npm run dev:next` أو `npm run build && npm start`.
+روابط `trycloudflare` للمعاينة مؤقتة وليست نشراً رسمياً. للنشر للعالم تحتاج ثلاثة أشياء:
 
-لا تضبط `FIRESTORE_EMULATOR_HOST` أو `FIREBASE_AUTH_EMULATOR_HOST` أو `FIREBASE_STORAGE_EMULATOR_HOST` في الإنتاج.
+1. مستودع Git (إن لم يُنشأ بعد، استخدم زر **Create repo** في Cursor ثم ادفع `main`).
+2. مشروع Firebase على [Google Cloud / Firebase Console](https://console.firebase.google.com/) مع **Blaze** إذا لزم التخزين أو الاستضافة المدفوعة حسب الاستخدام.
+3. استضافة Node.js — **Vercel** هو المسار الموصى به لهذا التطبيق (Next.js).
+
+لا تضع مفاتيح حساب الخدمة أو `SESSION_SECRET` داخل Git. لا تشغّل `npm run seed` على مشروع Firebase الحي؛ هذا الأمر يمسح البيانات وهو للمحاكي فقط.
+
+### 1) إعداد Firebase
+
+1. أنشئ مشروعاً جديداً (مثلاً اسم المدرسة بالإنكليزية).
+2. فعّل **Authentication** → Sign-in method → **Email/Password**.
+3. أنشئ قاعدة **Cloud Firestore** (وضع الإنتاج).
+4. فعّل **Storage**.
+5. من Project settings انسخ:
+   - **Project ID**
+   - **Web API Key**
+   - اسم سلة Storage (غالباً `PROJECT_ID.appspot.com`)
+6. من **Project settings → Service accounts** أنشئ مفتاح JSON لحساب الخدمة. احفظ الملف خارج المستودع، مثلاً `service-account.json`.
+
+انشر القواعد والفهارس من جهازك بعد `firebase login`:
+
+```bash
+npx firebase use --add
+npx firebase deploy --only firestore:rules,firestore:indexes,storage
+```
+
+### 2) متغيرات البيئة
+
+انسخ `env.example` إلى `.env.local` للتجربة ضد Firebase الحقيقي، أو أضف نفس القيم في لوحة Vercel → Settings → Environment Variables (Production):
+
+| المتغير | القيمة |
+| --- | --- |
+| `FIREBASE_PROJECT_ID` | معرّف المشروع |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | نفس المعرّف |
+| `FIREBASE_WEB_API_KEY` | Web API Key |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | نفس المفتاح |
+| `FIREBASE_STORAGE_BUCKET` | `PROJECT_ID.appspot.com` |
+| `FIREBASE_SERVICE_ACCOUNT` | محتوى JSON لحساب الخدمة في سطر واحد، أو Base64 |
+| `SESSION_SECRET` | سر جلسة قوي: `openssl rand -base64 48` |
+
+اترك `FIRESTORE_EMULATOR_HOST` و`FIREBASE_AUTH_EMULATOR_HOST` و`FIREBASE_STORAGE_EMULATOR_HOST` فارغة.
+
+للتحقق محلياً:
+
+```bash
+npm run check:production
+```
+
+### 3) بذرة الإنتاج (مرة واحدة، آمنة)
+
+تنشئ الصفوف والمواد الناقصة وحساب مدير واحد إن لم يوجد مدير. **لا تمسح** المدرسين ولا الواجبات ولا تعيد كلمات المرور.
+
+```bash
+FIREBASE_SERVICE_ACCOUNT_PATH=./service-account.json npm run seed:production
+```
+
+إذا لم تضبط `PRINCIPAL_PASSWORD` تُولَّد كلمة مرور وتُطبع مرة واحدة في الطرفية. احفظها. الحساب الافتراضي للمدير: اسم المستخدم `noura`.
+
+بعد الدخول كمدير أضف المدرسين من لوحة المدرسة. لا تعتمد على حسابات المحاكي (`ahmed` / `layla` / `omar`) في الموقع العلني.
+
+### 4) النشر على Vercel
+
+1. اربط المستودع في [vercel.com](https://vercel.com) (Import Git Repository).
+2. Framework Preset: Next.js. أمر البناء `npm run build`. أمر التشغيل يضبطه Vercel تلقائياً.
+3. أضف متغيرات البيئة أعلاه لكل من Production (و Preview إن أردت).
+4. Deploy. العنوان يصبح `https://….vercel.app`. يمكنك لاحقاً ربط نطاق المدرسة.
+5. افتح `/api/health` — يجب أن ترى `"ok": true` و`"emulator": false`.
+
+البث اللحظي (SSE) يعمل على مسار `/api/homework/stream` لمدة تصل إلى 60 ثانية لكل اتصال ثم يعيد العميل الاتصال. هذا مناسب لخطة Vercel الاعتيادية.
+
+بديل: [Firebase App Hosting](https://firebase.google.com/docs/app-hosting) عبر الملف `apphosting.yaml` إذا فضّلت البقاء داخل Google Cloud.
+
+### 5) بعد النشر
+
+- افتح الموقع على الهاتف وتحقق من دخول الطلاب (بدون كلمة مرور) ودخول المدير.
+- غيّر كلمة مرور المدير من لوحة الحساب إن كانت مولَّدة.
+- لا تعِد تشغيل `npm run dev` ضد مشروع الإنتاج؛ أمر التطوير يوجّه المحاكي ويمسح بياناته المحلية فقط، لكنه لا يجب أن يحمل مفاتيح الإنتاج.
