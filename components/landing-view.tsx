@@ -17,7 +17,7 @@ export function LandingView() {
 
         <section className="soft-card mt-2 w-full px-6 py-10 text-center sm:px-12">
           <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-            منصة الواجبات الذكية
+            البوابة الذكية
           </span>
           <h2 className="mt-5 text-2xl font-extrabold text-slate-900 sm:text-4xl">
             مرحباً بك في منصة الواجبات
