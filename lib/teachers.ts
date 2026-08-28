@@ -173,13 +173,28 @@ export function assignmentsFromSelections(
   sectionIds: string[],
   subjects: { id: string; nameAr: string }[]
 ): SubjectGrade[] {
+  return assignmentsFromGradeSections(
+    gradeIds.map((gradeId) => ({ gradeId, sectionIds })),
+    subjects
+  );
+}
+
+export type GradeSectionSelection = {
+  gradeId: string;
+  sectionIds: string[];
+};
+
+export function assignmentsFromGradeSections(
+  grades: GradeSectionSelection[],
+  subjects: { id: string; nameAr: string }[]
+): SubjectGrade[] {
   const rows: SubjectGrade[] = [];
-  for (const gradeId of gradeIds) {
-    for (const sectionId of sectionIds) {
+  for (const grade of grades) {
+    for (const sectionId of grade.sectionIds) {
       for (const subject of subjects) {
         rows.push({
-          id: `${gradeId}-${sectionId}-${subject.id}`,
-          gradeId,
+          id: `${grade.gradeId}-${sectionId}-${subject.id}`,
+          gradeId: grade.gradeId,
           sectionId,
           subjectId: subject.id,
           subjectNameAr: subject.nameAr,
@@ -197,24 +212,42 @@ export function pickerSelectionsFromAssignments(rows: SubjectGrade[] | undefined
   sections: NamedSelection[];
   subjects: NamedSelection[];
 } {
-  const list = rows ?? [];
-  const gradeIds = new Set(list.map((row) => row.gradeId));
-  const sectionIds = new Set(list.map((row) => row.sectionId));
+  const grouped = pickerGradeSectionsFromAssignments(rows);
+  const sectionIds = new Set(grouped.grades.flatMap((grade) => grade.sections.map((section) => section.id)));
+  return {
+    grades: grouped.grades.map((grade) => ({ id: grade.id, nameAr: grade.nameAr })),
+    sections: SECTIONS.filter((section) => sectionIds.has(section.id)).map((section) => ({
+      id: section.id,
+      nameAr: `شعبة ${section.ar}`,
+    })),
+    subjects: grouped.subjects,
+  };
+}
+
+export type GradeSectionPicker = NamedSelection & { sections: NamedSelection[] };
+
+export function pickerGradeSectionsFromAssignments(
+  rows: SubjectGrade[] | undefined
+): {
+  grades: GradeSectionPicker[];
+  subjects: NamedSelection[];
+} {
+  const groups = groupAssignmentsByGrade(rows);
   const subjects: NamedSelection[] = [];
   const seen = new Set<string>();
-  for (const row of list) {
+  for (const row of rows ?? []) {
     if (seen.has(row.subjectId)) continue;
     seen.add(row.subjectId);
     subjects.push({ id: row.subjectId, nameAr: row.subjectNameAr });
   }
   return {
-    grades: GRADES.filter((grade) => gradeIds.has(grade.id)).map((grade) => ({
-      id: grade.id,
-      nameAr: grade.nameAr,
-    })),
-    sections: SECTIONS.filter((section) => sectionIds.has(section.id)).map((section) => ({
-      id: section.id,
-      nameAr: `شعبة ${section.ar}`,
+    grades: groups.map((group) => ({
+      id: group.gradeId,
+      nameAr: group.gradeNameAr,
+      sections: group.sectionIds.map((id, index) => ({
+        id,
+        nameAr: group.sectionLabelsAr[index] ?? id,
+      })),
     })),
     subjects,
   };

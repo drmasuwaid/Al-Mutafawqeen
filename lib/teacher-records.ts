@@ -1,9 +1,10 @@
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { GRADES, SECTIONS } from "@/lib/catalog";
 import {
-  assignmentsFromSelections,
+  assignmentsFromGradeSections,
   classIdsFromAssignments,
   subjectIdsFromAssignments,
+  type GradeSectionSelection,
 } from "@/lib/teachers";
 import type { Subject, TeacherSummary } from "@/lib/types";
 
@@ -45,8 +46,7 @@ export type TeacherWriteInput = {
   displayNameAr: string;
   username: string;
   password?: string;
-  gradeIds: string[];
-  sectionIds: string[];
+  gradeSections: GradeSectionSelection[];
   subjectIds: string[];
 };
 
@@ -58,15 +58,29 @@ export function parseTeacherWrite(
     gradeIds?: string[];
     sectionIds?: string[];
     subjectIds?: string[];
+    gradeSections?: { gradeId?: string; sectionIds?: string[] }[];
   },
   options: { passwordRequired: boolean }
 ): { ok: true; value: TeacherWriteInput } | { ok: false; error: string; status: number } {
   const displayNameAr = body.displayNameAr?.trim();
   const username = body.username?.trim();
   const password = body.password?.trim();
-  const gradeIds = [...new Set((body.gradeIds ?? []).map(String).filter(Boolean))];
-  const sectionIds = [...new Set((body.sectionIds ?? []).map(String).filter(Boolean))];
   const subjectIds = [...new Set((body.subjectIds ?? []).map(String).filter(Boolean))];
+  const legacyGradeIds = [...new Set((body.gradeIds ?? []).map(String).filter(Boolean))];
+  const legacySectionIds = [...new Set((body.sectionIds ?? []).map(String).filter(Boolean))];
+
+  const rawGradeSections = Array.isArray(body.gradeSections) ? body.gradeSections : [];
+  let gradeSections: GradeSectionSelection[] = rawGradeSections.map((row) => ({
+    gradeId: String(row.gradeId ?? "").trim(),
+    sectionIds: [...new Set((row.sectionIds ?? []).map(String).filter(Boolean))],
+  })).filter((row) => row.gradeId);
+
+  if (!gradeSections.length && legacyGradeIds.length && legacySectionIds.length) {
+    gradeSections = legacyGradeIds.map((gradeId) => ({
+      gradeId,
+      sectionIds: legacySectionIds,
+    }));
+  }
 
   if (!displayNameAr) {
     return { ok: false, error: "أدخل الاسم الكامل للمدرس.", status: 400 };
@@ -80,16 +94,19 @@ export function parseTeacherWrite(
   if (password && password.length < 6) {
     return { ok: false, error: "كلمة المرور يجب ألا تقل عن 6 أحرف.", status: 400 };
   }
-  if (!gradeIds.length || !sectionIds.length || !subjectIds.length) {
+  if (!gradeSections.length || !subjectIds.length) {
     return { ok: false, error: "أضف مرحلة وشعبة ومادة واحدة على الأقل.", status: 400 };
+  }
+  if (gradeSections.some((row) => !row.sectionIds.length)) {
+    return { ok: false, error: "أضف شعبة واحدة على الأقل لكل مرحلة.", status: 400 };
   }
 
   const gradeSet = new Set(GRADES.map((item) => item.id));
   const sectionSet = new Set(SECTIONS.map((item) => item.id));
-  if (gradeIds.some((id) => !gradeSet.has(id as (typeof GRADES)[number]["id"]))) {
+  if (gradeSections.some((row) => !gradeSet.has(row.gradeId as (typeof GRADES)[number]["id"]))) {
     return { ok: false, error: "مرحلة غير صالحة.", status: 400 };
   }
-  if (sectionIds.some((id) => !sectionSet.has(id as (typeof SECTIONS)[number]["id"]))) {
+  if (gradeSections.some((row) => row.sectionIds.some((id) => !sectionSet.has(id as (typeof SECTIONS)[number]["id"])))) {
     return { ok: false, error: "شعبة غير صالحة.", status: 400 };
   }
 
@@ -99,8 +116,7 @@ export function parseTeacherWrite(
       displayNameAr,
       username,
       password: password || undefined,
-      gradeIds,
-      sectionIds,
+      gradeSections,
       subjectIds,
     },
   };
@@ -127,7 +143,7 @@ export async function assignmentsForWrite(input: TeacherWriteInput) {
   if (selectedSubjects.length !== input.subjectIds.length) {
     throw new Error("مادة غير صالحة.");
   }
-  const subjectsGrades = assignmentsFromSelections(input.gradeIds, input.sectionIds, selectedSubjects);
+  const subjectsGrades = assignmentsFromGradeSections(input.gradeSections, selectedSubjects);
   return {
     subjectsGrades,
     classIds: classIdsFromAssignments(subjectsGrades),

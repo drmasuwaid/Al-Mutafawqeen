@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { GRADES, SECTIONS } from "@/lib/catalog";
-import { pickerSelectionsFromAssignments } from "@/lib/teachers";
+import { pickerGradeSectionsFromAssignments, type GradeSectionPicker } from "@/lib/teachers";
 import { useSubjects } from "@/hooks/use-subjects";
 import type { TeacherSummary } from "@/lib/types";
 
@@ -30,8 +30,7 @@ export function TeacherFormDialog({
   const [nameAr, setNameAr] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [grades, setGrades] = useState<PickerOption[]>([]);
-  const [sections, setSections] = useState<PickerOption[]>([]);
+  const [grades, setGrades] = useState<GradeSectionPicker[]>([]);
   const [subjects, setSubjects] = useState<PickerOption[]>([]);
   const { subjects: catalog, reload } = useSubjects();
   const [busy, setBusy] = useState(false);
@@ -42,30 +41,31 @@ export function TeacherFormDialog({
       setUsername("");
       setPassword("");
       setGrades([]);
-      setSections([]);
       setSubjects([]);
       return;
     }
     if (teacher) {
-      const selected = pickerSelectionsFromAssignments(teacher.subjectsGrades);
+      const selected = pickerGradeSectionsFromAssignments(teacher.subjectsGrades);
       setNameAr(teacher.displayNameAr);
       setUsername(teacher.username);
       setPassword("");
       setGrades(selected.grades);
-      setSections(selected.sections);
       setSubjects(selected.subjects);
     } else {
       setNameAr("");
       setUsername("");
       setPassword("");
       setGrades([]);
-      setSections([]);
       setSubjects([]);
     }
     void reload();
   }, [open, teacher, reload]);
 
   async function save() {
+    if (grades.some((grade) => grade.sections.length === 0)) {
+      toast.error("أضف شعبة واحدة على الأقل لكل مرحلة.");
+      return;
+    }
     setBusy(true);
     try {
       const res = await fetch(isEdit ? `/api/teachers/${teacher!.id}` : "/api/teachers", {
@@ -75,8 +75,10 @@ export function TeacherFormDialog({
           displayNameAr: nameAr.trim(),
           username: username.trim(),
           password: password.trim() || undefined,
-          gradeIds: grades.map((item) => item.id),
-          sectionIds: sections.map((item) => item.id),
+          gradeSections: grades.map((item) => ({
+            gradeId: item.id,
+            sectionIds: item.sections.map((section) => section.id),
+          })),
           subjectIds: subjects.map((item) => item.id),
         }),
       });
@@ -112,8 +114,8 @@ export function TeacherFormDialog({
             </DialogTitle>
             <DialogDescription className="mt-1 text-sm text-slate-400">
               {isEdit
-                ? "حدّث الاسم واسم المستخدم والمراحل والشعب والمواد. اترك كلمة المرور فارغة للإبقاء عليها."
-                : "حدّد الاسم والمراحل والشعب والمواد ثم اسم المستخدم وكلمة المرور الأولية."}
+                ? "حدّث الاسم واسم المستخدم، ولكل مرحلة شعبها، ثم المواد. اترك كلمة المرور فارغة للإبقاء عليها."
+                : "حدّد الاسم، ثم لكل مرحلة شعبها الخاصة، ثم المواد واسم المستخدم وكلمة المرور الأولية."}
             </DialogDescription>
           </div>
         </div>
@@ -132,16 +134,45 @@ export function TeacherFormDialog({
           label="المراحل الدراسية"
           placeholder="-- اختر المرحلة --"
           options={GRADES.map((grade) => ({ id: grade.id, nameAr: grade.nameAr }))}
-          selected={grades}
-          onChange={setGrades}
+          selected={grades.map((grade) => ({ id: grade.id, nameAr: grade.nameAr }))}
+          onChange={(next) =>
+            setGrades(
+              next.map((grade) => ({
+                ...grade,
+                sections: grades.find((row) => row.id === grade.id)?.sections ?? [],
+              }))
+            )
+          }
         />
-        <MultiAddPicker
-          label="الشعب"
-          placeholder="-- اختر الشعبة --"
-          options={SECTIONS.map((section) => ({ id: section.id, nameAr: `شعبة ${section.ar}` }))}
-          selected={sections}
-          onChange={setSections}
-        />
+        {grades.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-400">
+            أضف مرحلة أولاً لتعيين الشعب الخاصة بها.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {grades.map((grade) => (
+              <div
+                key={grade.id}
+                className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3"
+              >
+                <MultiAddPicker
+                  label={`شعب ${grade.nameAr}`}
+                  placeholder="-- اختر الشعبة --"
+                  options={SECTIONS.map((section) => ({
+                    id: section.id,
+                    nameAr: `شعبة ${section.ar}`,
+                  }))}
+                  selected={grade.sections}
+                  onChange={(sections) =>
+                    setGrades((current) =>
+                      current.map((row) => (row.id === grade.id ? { ...row, sections } : row))
+                    )
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        )}
         <MultiAddPicker
           label="المواد الدراسية"
           placeholder="-- اختر المادة --"
