@@ -32,18 +32,12 @@ export function LandingView() {
             icon={<GraduationCap className="size-6" />}
             title="واجهة الطلاب"
             body="اختر الصف والشعبة لاستعراض الواجبات اليومية والمرفقات مباشرة، دون الحاجة إلى كلمة مرور."
-            action="الدخول لصفحة الواجبات ←"
-            badge="قراءة فقط"
-            badgeClass="bg-sky-50 text-sky-700"
             onClick={() => setStudentOpen(true)}
           />
           <RoleCard
             icon={<Presentation className="size-6" />}
             title="واجهة الكادر الإداري والتدريسي"
             body="دخول مدير المدرسة لإدارة المدرسين، أو دخول المدرس بعد اختيار اسمه من القائمة الأبجدية."
-            action="الدخول إلى البوابة ←"
-            badge="إدارة وتدريس"
-            badgeClass="bg-violet-50 text-violet-700"
             onClick={() => setTeacherOpen(true)}
           />
         </section>
@@ -59,37 +53,25 @@ function RoleCard({
   icon,
   title,
   body,
-  action,
-  badge,
-  badgeClass,
   onClick,
 }: {
   icon: React.ReactNode;
   title: string;
   body: string;
-  action: string;
-  badge: string;
-  badgeClass: string;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={`${title} — ${action}`}
+      aria-label={title}
       className="soft-card flex h-full w-full cursor-pointer flex-col p-6 text-start transition hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-blue-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
     >
       <span className="flex size-12 items-center justify-center rounded-2xl bg-[#3b82f6] text-white">
         {icon}
       </span>
       <h3 className="mt-4 text-lg font-extrabold text-slate-900">{title}</h3>
-      <p className="mt-2 flex-1 text-sm leading-7 text-slate-500">{body}</p>
-      <div className="mt-5 flex items-center justify-between gap-3">
-        <span className="text-sm font-bold text-[#3b82f6]">{action}</span>
-        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${badgeClass}`}>
-          {badge}
-        </span>
-      </div>
+      <p className="mt-2 text-sm leading-7 text-slate-500">{body}</p>
     </button>
   );
 }
