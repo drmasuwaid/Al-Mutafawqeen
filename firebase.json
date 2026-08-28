@@ -22,5 +22,16 @@
   },
   "storage": {
     "rules": "firebase/storage.rules"
+  },
+  "hosting": {
+    "public": "hosting-redirect",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "redirects": [
+      {
+        "source": "**",
+        "destination": "https://al-mutafawqeen--al-mutafawqeen-homework.europe-west4.hosted.app",
+        "type": 302
+      }
+    ]
   }
 }
