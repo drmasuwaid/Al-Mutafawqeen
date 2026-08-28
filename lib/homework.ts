@@ -10,7 +10,7 @@ import type {
 } from "@/lib/types";
 import { adminDb } from "@/lib/firebase-admin";
 import { deleteHomeworkFiles } from "@/lib/files";
-import { isHomeworkOwner, sessionTeacherId, teacherClassIds } from "@/lib/teachers";
+import { isHomeworkOwner, sessionTeacherId, teacherCanPublishAssignment, teacherClassIds } from "@/lib/teachers";
 import type { DocumentData, DocumentReference, QueryDocumentSnapshot } from "firebase-admin/firestore";
 
 export const HOMEWORK_TTL_MS = 14 * 24 * 60 * 60 * 1000;
@@ -256,12 +256,15 @@ export type HomeworkInput = {
   attachments?: Attachment[];
 };
 
-function assertTeacherCanUseClasses(user: Profile, classIds: string[]) {
+function assertTeacherCanUseClasses(user: Profile, classIds: string[], subjectId?: string) {
   if (user.role === "admin") return;
   if (!classIds.length) throw new Error("اختر شعبة واحدة على الأقل.");
   const allowed = teacherClassIds(user);
   if (allowed.length && classIds.some((id) => !allowed.includes(id))) {
     throw new Error("يمكنك النشر للشعب المسندة إليك فقط.");
+  }
+  if (subjectId && !teacherCanPublishAssignment(user, classIds, subjectId)) {
+    throw new Error("يمكنك النشر للمادة والشعب المسندة إليك فقط.");
   }
 }
 
@@ -269,7 +272,7 @@ export async function createHomework(user: Profile, input: HomeworkInput) {
   if (user.role === "student") {
     throw new Error("Students cannot assign homework.");
   }
-  assertTeacherCanUseClasses(user, input.classIds);
+  assertTeacherCanUseClasses(user, input.classIds, input.subjectId);
 
   const teacherId = sessionTeacherId(user);
   const now = new Date().toISOString();
@@ -308,7 +311,11 @@ export async function updateHomework(
   if (!isHomeworkOwner(user, { createdBy: String(current.createdBy ?? ""), teacherId: String(current.teacherId ?? "") })) {
     throw new Error("يمكنك تعديل واجباتك فقط.");
   }
-  if (input.classIds) assertTeacherCanUseClasses(user, input.classIds);
+  if (input.classIds || input.subjectId) {
+    const classIds = input.classIds ?? (Array.isArray(current.classIds) ? current.classIds.map(String) : []);
+    const subjectId = input.subjectId ?? String(current.subjectId ?? "");
+    assertTeacherCanUseClasses(user, classIds, subjectId);
+  }
   const patch: Record<string, unknown> = { updatedAt: new Date().toISOString() };
   for (const [key, value] of Object.entries(input)) {
     if (value !== undefined) patch[key] = value;

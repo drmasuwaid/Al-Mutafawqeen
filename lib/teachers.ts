@@ -94,15 +94,23 @@ export function formatGroupedSubjects(names: string[]) {
   return names.filter(Boolean).join("، ");
 }
 
+export type NamedSelection = { id: string; nameAr: string };
+
 export type GradeAssignmentGroup = {
   gradeId: string;
   gradeNameAr: string;
   sectionIds: string[];
   sectionLabelsAr: string[];
+  subjectIds: string[];
+  subjects: NamedSelection[];
   subjectNamesAr: string[];
   rows: SubjectGrade[];
   line: string;
 };
+
+function uniqueIds(values: string[] | undefined) {
+  return [...new Set((values ?? []).map((value) => String(value).trim()).filter(Boolean))];
+}
 
 export function formatGradeAssignmentLine(
   gradeNameAr: string,
@@ -141,18 +149,21 @@ export function groupAssignmentsByGrade(rows: SubjectGrade[] | undefined): Grade
       const section = SECTIONS.find((item) => item.id === id);
       return section ? `شعبة ${section.ar}` : id;
     });
-    const subjectNamesAr: string[] = [];
+    const subjects: NamedSelection[] = [];
     const seen = new Set<string>();
     for (const row of groupRows) {
-      if (seen.has(row.subjectId)) continue;
+      if (!row.subjectId || seen.has(row.subjectId)) continue;
       seen.add(row.subjectId);
-      if (row.subjectNameAr) subjectNamesAr.push(row.subjectNameAr);
+      subjects.push({ id: row.subjectId, nameAr: row.subjectNameAr });
     }
+    const subjectNamesAr = subjects.map((item) => item.nameAr).filter(Boolean);
     return {
       gradeId,
       gradeNameAr,
       sectionIds: allSectionIds,
       sectionLabelsAr,
+      subjectIds: subjects.map((item) => item.id),
+      subjects,
       subjectNamesAr,
       rows: groupRows,
       line: formatGradeAssignmentLine(gradeNameAr, sectionLabelsAr, subjectNamesAr),
@@ -173,8 +184,9 @@ export function assignmentsFromSelections(
   sectionIds: string[],
   subjects: { id: string; nameAr: string }[]
 ): SubjectGrade[] {
+  const subjectIds = subjects.map((subject) => subject.id);
   return assignmentsFromGradeSections(
-    gradeIds.map((gradeId) => ({ gradeId, sectionIds })),
+    gradeIds.map((gradeId) => ({ gradeId, sectionIds, subjectIds })),
     subjects
   );
 }
@@ -182,19 +194,31 @@ export function assignmentsFromSelections(
 export type GradeSectionSelection = {
   gradeId: string;
   sectionIds: string[];
+  subjectIds: string[];
 };
 
 export function assignmentsFromGradeSections(
   grades: GradeSectionSelection[],
   subjects: { id: string; nameAr: string }[]
 ): SubjectGrade[] {
+  const subjectMap = new Map(subjects.map((subject) => [subject.id, subject]));
   const rows: SubjectGrade[] = [];
+  const seen = new Set<string>();
   for (const grade of grades) {
-    for (const sectionId of grade.sectionIds) {
-      for (const subject of subjects) {
+    const gradeId = grade.gradeId.trim();
+    if (!gradeId) continue;
+    const sectionIds = uniqueIds(grade.sectionIds);
+    const subjectIds = uniqueIds(grade.subjectIds);
+    for (const sectionId of sectionIds) {
+      for (const subjectId of subjectIds) {
+        const subject = subjectMap.get(subjectId);
+        if (!subject) continue;
+        const id = `${gradeId}-${sectionId}-${subject.id}`;
+        if (seen.has(id)) continue;
+        seen.add(id);
         rows.push({
-          id: `${grade.gradeId}-${sectionId}-${subject.id}`,
-          gradeId: grade.gradeId,
+          id,
+          gradeId,
           sectionId,
           subjectId: subject.id,
           subjectNameAr: subject.nameAr,
@@ -205,7 +229,26 @@ export function assignmentsFromGradeSections(
   return rows;
 }
 
-export type NamedSelection = { id: string; nameAr: string };
+export function teacherCanPublishAssignment(
+  user: { role?: string; subjectsGrades?: SubjectGrade[] } | null | undefined,
+  classIds: string[],
+  subjectId: string
+) {
+  if (!user || user.role === "admin") return true;
+  const rows = user.subjectsGrades ?? [];
+  if (!rows.length) return true;
+  const wantedSubject = String(subjectId ?? "").trim();
+  if (!wantedSubject) return false;
+  return classIds.every((classId) => {
+    const [gradeId, sectionId] = classId.split("-");
+    return rows.some(
+      (row) =>
+        row.gradeId === gradeId &&
+        row.sectionId === sectionId &&
+        row.subjectId === wantedSubject
+    );
+  });
+}
 
 export function pickerSelectionsFromAssignments(rows: SubjectGrade[] | undefined): {
   grades: NamedSelection[];
@@ -224,7 +267,10 @@ export function pickerSelectionsFromAssignments(rows: SubjectGrade[] | undefined
   };
 }
 
-export type GradeSectionPicker = NamedSelection & { sections: NamedSelection[] };
+export type GradeSectionPicker = NamedSelection & {
+  sections: NamedSelection[];
+  subjects: NamedSelection[];
+};
 
 export function pickerGradeSectionsFromAssignments(
   rows: SubjectGrade[] | undefined
@@ -235,10 +281,12 @@ export function pickerGradeSectionsFromAssignments(
   const groups = groupAssignmentsByGrade(rows);
   const subjects: NamedSelection[] = [];
   const seen = new Set<string>();
-  for (const row of rows ?? []) {
-    if (seen.has(row.subjectId)) continue;
-    seen.add(row.subjectId);
-    subjects.push({ id: row.subjectId, nameAr: row.subjectNameAr });
+  for (const group of groups) {
+    for (const subject of group.subjects) {
+      if (seen.has(subject.id)) continue;
+      seen.add(subject.id);
+      subjects.push(subject);
+    }
   }
   return {
     grades: groups.map((group) => ({
@@ -248,6 +296,7 @@ export function pickerGradeSectionsFromAssignments(
         id,
         nameAr: group.sectionLabelsAr[index] ?? id,
       })),
+      subjects: group.subjects.map((subject) => ({ ...subject })),
     })),
     subjects,
   };

@@ -62,7 +62,7 @@ export function PublishDialog({
 
   const gradeSections = useMemo(() => {
     const fromAssignments = assignments
-      .filter((row) => row.gradeId === gradeId)
+      .filter((row) => row.gradeId === gradeId && (!subjectId || row.subjectId === subjectId))
       .map((row) => row.sectionId);
     const unique = [...new Set(fromAssignments)];
     if (unique.length) return unique;
@@ -70,7 +70,7 @@ export function PublishDialog({
       .map((id) => parseClassId(id))
       .filter((item) => item.gradeId === gradeId)
       .map((item) => item.sectionId);
-  }, [assignments, gradeId, profile]);
+  }, [assignments, gradeId, profile, subjectId]);
 
   const allowedSubjects = useMemo(() => {
     const ids = new Set(
@@ -188,7 +188,14 @@ export function PublishDialog({
           </label>
           <label className="block space-y-2">
             <span className="text-sm font-medium text-slate-600">المادة الدراسية:</span>
-            <NativeSelect value={subjectId} onChange={(event) => setSubjectId(event.target.value)} disabled={!gradeId}>
+            <NativeSelect
+              value={subjectId}
+              onChange={(event) => {
+                setSubjectId(event.target.value);
+                setSectionIds([]);
+              }}
+              disabled={!gradeId}
+            >
               <option value="">-- اختر الصف أولاً --</option>
               {allowedSubjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>

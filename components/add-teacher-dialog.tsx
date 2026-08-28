@@ -15,6 +15,15 @@ import { pickerGradeSectionsFromAssignments, type GradeSectionPicker } from "@/l
 import { useSubjects } from "@/hooks/use-subjects";
 import type { TeacherSummary } from "@/lib/types";
 
+function emptyGrade(grade: PickerOption, previous?: GradeSectionPicker): GradeSectionPicker {
+  return {
+    id: grade.id,
+    nameAr: grade.nameAr,
+    sections: previous?.id === grade.id ? previous.sections : [],
+    subjects: previous?.id === grade.id ? previous.subjects : [],
+  };
+}
+
 export function TeacherFormDialog({
   open,
   onOpenChange,
@@ -31,7 +40,6 @@ export function TeacherFormDialog({
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [grades, setGrades] = useState<GradeSectionPicker[]>([]);
-  const [subjects, setSubjects] = useState<PickerOption[]>([]);
   const { subjects: catalog, reload } = useSubjects();
   const [busy, setBusy] = useState(false);
 
@@ -41,7 +49,6 @@ export function TeacherFormDialog({
       setUsername("");
       setPassword("");
       setGrades([]);
-      setSubjects([]);
       return;
     }
     if (teacher) {
@@ -50,20 +57,32 @@ export function TeacherFormDialog({
       setUsername(teacher.username);
       setPassword("");
       setGrades(selected.grades);
-      setSubjects(selected.subjects);
     } else {
       setNameAr("");
       setUsername("");
       setPassword("");
       setGrades([]);
-      setSubjects([]);
     }
     void reload();
   }, [open, teacher, reload]);
 
+  function updateGrade(gradeId: string, patch: Partial<Pick<GradeSectionPicker, "sections" | "subjects">>) {
+    setGrades((current) =>
+      current.map((row) => (row.id === gradeId ? { ...row, ...patch } : row))
+    );
+  }
+
   async function save() {
+    if (!grades.length) {
+      toast.error("أضف مرحلة وشعبة ومادة واحدة على الأقل.");
+      return;
+    }
     if (grades.some((grade) => grade.sections.length === 0)) {
       toast.error("أضف شعبة واحدة على الأقل لكل مرحلة.");
+      return;
+    }
+    if (grades.some((grade) => grade.subjects.length === 0)) {
+      toast.error("أضف مادة واحدة على الأقل لكل مرحلة.");
       return;
     }
     setBusy(true);
@@ -78,8 +97,8 @@ export function TeacherFormDialog({
           gradeSections: grades.map((item) => ({
             gradeId: item.id,
             sectionIds: item.sections.map((section) => section.id),
+            subjectIds: item.subjects.map((subject) => subject.id),
           })),
-          subjectIds: subjects.map((item) => item.id),
         }),
       });
       const data = (await res.json()) as { error?: string; teacher?: TeacherSummary };
@@ -114,8 +133,8 @@ export function TeacherFormDialog({
             </DialogTitle>
             <DialogDescription className="mt-1 text-sm text-slate-400">
               {isEdit
-                ? "حدّث الاسم واسم المستخدم، ولكل مرحلة شعبها، ثم المواد. اترك كلمة المرور فارغة للإبقاء عليها."
-                : "حدّد الاسم، ثم لكل مرحلة شعبها الخاصة، ثم المواد واسم المستخدم وكلمة المرور الأولية."}
+                ? "حدّث الاسم واسم المستخدم، ولكل مرحلة شعبها ومادتها. اترك كلمة المرور فارغة للإبقاء عليها."
+                : "حدّد الاسم، ثم لكل مرحلة شعبها ومادتها، ثم اسم المستخدم وكلمة المرور الأولية."}
             </DialogDescription>
           </div>
         </div>
@@ -136,25 +155,23 @@ export function TeacherFormDialog({
           options={GRADES.map((grade) => ({ id: grade.id, nameAr: grade.nameAr }))}
           selected={grades.map((grade) => ({ id: grade.id, nameAr: grade.nameAr }))}
           onChange={(next) =>
-            setGrades(
-              next.map((grade) => ({
-                ...grade,
-                sections: grades.find((row) => row.id === grade.id)?.sections ?? [],
-              }))
+            setGrades((current) =>
+              next.map((grade) => emptyGrade(grade, current.find((row) => row.id === grade.id)))
             )
           }
         />
         {grades.length === 0 ? (
           <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-400">
-            أضف مرحلة أولاً لتعيين الشعب الخاصة بها.
+            أضف مرحلة أولاً لتعيين الشعب والمادة الخاصة بها.
           </p>
         ) : (
           <div className="space-y-3">
             {grades.map((grade) => (
               <div
                 key={grade.id}
-                className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3"
+                className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3"
               >
+                <p className="text-sm font-extrabold text-slate-800">{grade.nameAr}</p>
                 <MultiAddPicker
                   label={`شعب ${grade.nameAr}`}
                   placeholder="-- اختر الشعبة --"
@@ -163,23 +180,19 @@ export function TeacherFormDialog({
                     nameAr: `شعبة ${section.ar}`,
                   }))}
                   selected={grade.sections}
-                  onChange={(sections) =>
-                    setGrades((current) =>
-                      current.map((row) => (row.id === grade.id ? { ...row, sections } : row))
-                    )
-                  }
+                  onChange={(sections) => updateGrade(grade.id, { sections })}
+                />
+                <MultiAddPicker
+                  label={`مادة ${grade.nameAr}`}
+                  placeholder="-- اختر المادة --"
+                  options={catalog.map((subject) => ({ id: subject.id, nameAr: subject.nameAr }))}
+                  selected={grade.subjects}
+                  onChange={(subjects) => updateGrade(grade.id, { subjects })}
                 />
               </div>
             ))}
           </div>
         )}
-        <MultiAddPicker
-          label="المواد الدراسية"
-          placeholder="-- اختر المادة --"
-          options={catalog.map((subject) => ({ id: subject.id, nameAr: subject.nameAr }))}
-          selected={subjects}
-          onChange={setSubjects}
-        />
 
         <label className="block space-y-2">
           <span className="text-sm font-medium text-slate-600">اسم المستخدم</span>

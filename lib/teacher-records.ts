@@ -47,8 +47,12 @@ export type TeacherWriteInput = {
   username: string;
   password?: string;
   gradeSections: GradeSectionSelection[];
-  subjectIds: string[];
 };
+
+function uniqueIds(values: unknown) {
+  if (!Array.isArray(values)) return [];
+  return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
+}
 
 export function parseTeacherWrite(
   body: {
@@ -58,27 +62,36 @@ export function parseTeacherWrite(
     gradeIds?: string[];
     sectionIds?: string[];
     subjectIds?: string[];
-    gradeSections?: { gradeId?: string; sectionIds?: string[] }[];
+    gradeSections?: { gradeId?: string; sectionIds?: string[]; subjectIds?: string[] }[];
   },
   options: { passwordRequired: boolean }
 ): { ok: true; value: TeacherWriteInput } | { ok: false; error: string; status: number } {
   const displayNameAr = body.displayNameAr?.trim();
   const username = body.username?.trim();
   const password = body.password?.trim();
-  const subjectIds = [...new Set((body.subjectIds ?? []).map(String).filter(Boolean))];
-  const legacyGradeIds = [...new Set((body.gradeIds ?? []).map(String).filter(Boolean))];
-  const legacySectionIds = [...new Set((body.sectionIds ?? []).map(String).filter(Boolean))];
+  const globalSubjectIds = uniqueIds(body.subjectIds);
+  const legacyGradeIds = uniqueIds(body.gradeIds);
+  const legacySectionIds = uniqueIds(body.sectionIds);
 
   const rawGradeSections = Array.isArray(body.gradeSections) ? body.gradeSections : [];
-  let gradeSections: GradeSectionSelection[] = rawGradeSections.map((row) => ({
-    gradeId: String(row.gradeId ?? "").trim(),
-    sectionIds: [...new Set((row.sectionIds ?? []).map(String).filter(Boolean))],
-  })).filter((row) => row.gradeId);
+  let gradeSections: GradeSectionSelection[] = rawGradeSections
+    .map((row) => ({
+      gradeId: String(row.gradeId ?? "").trim(),
+      sectionIds: uniqueIds(row.sectionIds),
+      subjectIds: uniqueIds(row.subjectIds),
+    }))
+    .filter((row) => row.gradeId);
 
   if (!gradeSections.length && legacyGradeIds.length && legacySectionIds.length) {
     gradeSections = legacyGradeIds.map((gradeId) => ({
       gradeId,
       sectionIds: legacySectionIds,
+      subjectIds: globalSubjectIds,
+    }));
+  } else {
+    gradeSections = gradeSections.map((row) => ({
+      ...row,
+      subjectIds: row.subjectIds.length ? row.subjectIds : globalSubjectIds,
     }));
   }
 
@@ -94,11 +107,18 @@ export function parseTeacherWrite(
   if (password && password.length < 6) {
     return { ok: false, error: "كلمة المرور يجب ألا تقل عن 6 أحرف.", status: 400 };
   }
-  if (!gradeSections.length || !subjectIds.length) {
+  if (!gradeSections.length) {
     return { ok: false, error: "أضف مرحلة وشعبة ومادة واحدة على الأقل.", status: 400 };
+  }
+  const gradeIds = gradeSections.map((row) => row.gradeId);
+  if (new Set(gradeIds).size !== gradeIds.length) {
+    return { ok: false, error: "لا يمكن تكرار المرحلة.", status: 400 };
   }
   if (gradeSections.some((row) => !row.sectionIds.length)) {
     return { ok: false, error: "أضف شعبة واحدة على الأقل لكل مرحلة.", status: 400 };
+  }
+  if (gradeSections.some((row) => !row.subjectIds.length)) {
+    return { ok: false, error: "أضف مادة واحدة على الأقل لكل مرحلة.", status: 400 };
   }
 
   const gradeSet = new Set(GRADES.map((item) => item.id));
@@ -117,7 +137,6 @@ export function parseTeacherWrite(
       username,
       password: password || undefined,
       gradeSections,
-      subjectIds,
     },
   };
 }
@@ -137,10 +156,11 @@ export async function loadSubjectCatalog(): Promise<Subject[]> {
 
 export async function assignmentsForWrite(input: TeacherWriteInput) {
   const catalog = await loadSubjectCatalog();
-  const selectedSubjects = input.subjectIds
+  const requestedIds = [...new Set(input.gradeSections.flatMap((row) => row.subjectIds))];
+  const selectedSubjects = requestedIds
     .map((id) => catalog.find((item) => item.id === id))
     .filter((item): item is Subject => Boolean(item));
-  if (selectedSubjects.length !== input.subjectIds.length) {
+  if (selectedSubjects.length !== requestedIds.length) {
     throw new Error("مادة غير صالحة.");
   }
   const subjectsGrades = assignmentsFromGradeSections(input.gradeSections, selectedSubjects);
