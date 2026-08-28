@@ -87,24 +87,23 @@ function RoleCard({
   onClick: () => void;
 }) {
   return (
-    <article className="soft-card flex flex-col p-6">
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`${title} — ${action}`}
+      className="soft-card flex h-full w-full cursor-pointer flex-col p-6 text-start transition hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-blue-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+    >
       <span className="flex size-12 items-center justify-center rounded-2xl bg-[#3b82f6] text-white">
         {icon}
       </span>
       <h3 className="mt-4 text-lg font-extrabold text-slate-900">{title}</h3>
       <p className="mt-2 flex-1 text-sm leading-7 text-slate-500">{body}</p>
       <div className="mt-5 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onClick}
-          className="text-sm font-bold text-[#3b82f6] hover:text-[#2563eb]"
-        >
-          {action}
-        </button>
+        <span className="text-sm font-bold text-[#3b82f6]">{action}</span>
         <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${badgeClass}`}>
           {badge}
         </span>
       </div>
-    </article>
+    </button>
   );
 }
