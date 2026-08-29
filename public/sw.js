@@ -1,4 +1,4 @@
-const CACHE = "school-homework-v2";
+const CACHE = "school-homework-v3";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -19,20 +19,25 @@ self.addEventListener("activate", (event) => {
 function timedFetch(request, ms = 8000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
-  return fetch(request, { signal: controller.signal }).finally(() => clearTimeout(timer));
+  return fetch(request, { signal: controller.signal, cache: "no-store" }).finally(() =>
+    clearTimeout(timer)
+  );
 }
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
+  if (request.mode === "navigate") return;
+
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/_next/")) return;
+  if (url.pathname === "/" || url.pathname === "/sw.js") return;
 
   event.respondWith(
     timedFetch(request)
       .then((response) => {
-        if (response.ok) {
+        if (response.ok && response.type === "basic") {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(request, copy));
         }

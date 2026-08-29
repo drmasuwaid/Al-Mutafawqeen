@@ -15,9 +15,23 @@ export function SchoolApp() {
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-    void navigator.serviceWorker.register("/sw.js").catch(() => {
-      /* optional PWA cache */
-    });
+    let registration: ServiceWorkerRegistration | null = null;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void registration?.update();
+    };
+    void navigator.serviceWorker
+      .register("/sw.js", { updateViaCache: "none" })
+      .then((next) => {
+        registration = next;
+        void next.update();
+      })
+      .catch(() => {
+        /* optional PWA cache */
+      });
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   if (loading) {
