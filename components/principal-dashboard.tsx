@@ -10,9 +10,12 @@ import { AppHeader } from "@/components/app-header";
 import { PrincipalAvatar } from "@/components/principal-avatar";
 import { TeacherAvatar } from "@/components/teacher-avatar";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
+import { NativeSelect } from "@/components/native-select";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubjects } from "@/hooks/use-subjects";
 import { teacherMatchesQuery } from "@/lib/arabic";
-import { compareArabicNames, groupAssignmentsByGrade } from "@/lib/teachers";
+import { GRADES } from "@/lib/catalog";
+import { compareArabicNames, groupAssignmentsByGrade, teacherMatchesStaffFilters } from "@/lib/teachers";
 import type { TeacherSummary } from "@/lib/types";
 
 export function PrincipalDashboard() {
@@ -25,7 +28,10 @@ export function PrincipalDashboard() {
   const [deleting, setDeleting] = useState<TeacherSummary | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [query, setQuery] = useState("");
+  const [gradeFilter, setGradeFilter] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("");
   const [subjectOpen, setSubjectOpen] = useState(false);
+  const { subjects: catalog } = useSubjects();
 
   const loadTeachers = useCallback(async () => {
     setLoading(true);
@@ -70,9 +76,29 @@ export function PrincipalDashboard() {
     }
   }
 
+  const subjectOptions = useMemo(() => {
+    const names = new Map<string, string>();
+    for (const subject of catalog) names.set(subject.id, subject.nameAr);
+    for (const teacher of teachers) {
+      for (const row of teacher.subjectsGrades ?? []) {
+        if (row.subjectId && !names.has(row.subjectId)) {
+          names.set(row.subjectId, row.subjectNameAr || row.subjectId);
+        }
+      }
+    }
+    return [...names.entries()].sort((a, b) => a[1].localeCompare(b[1], "ar"));
+  }, [catalog, teachers]);
+
+  const filtersActive = Boolean(query.trim() || gradeFilter || subjectFilter);
+
   const visibleTeachers = useMemo(
-    () => teachers.filter((teacher) => teacherMatchesQuery(teacher, query)),
-    [teachers, query]
+    () =>
+      teachers.filter(
+        (teacher) =>
+          teacherMatchesQuery(teacher, query) &&
+          teacherMatchesStaffFilters(teacher, { gradeId: gradeFilter, subjectId: subjectFilter })
+      ),
+    [teachers, query, gradeFilter, subjectFilter]
   );
 
   if (!profile) return null;
@@ -128,21 +154,75 @@ export function PrincipalDashboard() {
         <section className="mt-6">
           <h3 className="text-lg font-extrabold text-slate-900">الكادر التدريسي</h3>
           <p className="mt-1 text-sm text-slate-400">
-            الأسماء مرتبة أبجدياً. يمكنك تعديل بيانات المدرس أو حذف حسابه من هنا.
+            الأسماء مرتبة أبجدياً. صفِّ حسب الصف أو المادة، أو ابحث بالاسم.
           </p>
-          <label className="relative mt-4 block">
-            <Search className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-slate-400" />
-            <input
-              className="field-input w-full"
-              style={{ paddingRight: 42 }}
-              dir="rtl"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="ابحث بالاسم أو اسم المستخدم..."
-              aria-label="بحث في الكادر التدريسي"
-              autoComplete="off"
-            />
-          </label>
+          <div className="mt-4 space-y-3">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-slate-400" />
+              <input
+                className="field-input w-full"
+                style={{ paddingRight: 42 }}
+                dir="rtl"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="ابحث بالاسم أو اسم المستخدم..."
+                aria-label="بحث في الكادر التدريسي"
+                autoComplete="off"
+              />
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-slate-600">الصف</span>
+                <NativeSelect
+                  value={gradeFilter}
+                  onChange={(event) => setGradeFilter(event.target.value)}
+                  aria-label="تصفية حسب الصف"
+                >
+                  <option value="">-- كل الصفوف --</option>
+                  {GRADES.map((grade) => (
+                    <option key={grade.id} value={grade.id}>
+                      {grade.nameAr}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </label>
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-slate-600">المادة</span>
+                <NativeSelect
+                  value={subjectFilter}
+                  onChange={(event) => setSubjectFilter(event.target.value)}
+                  aria-label="تصفية حسب المادة"
+                >
+                  <option value="">-- كل المواد --</option>
+                  {subjectOptions.map(([id, nameAr]) => (
+                    <option key={id} value={id}>
+                      {nameAr}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </label>
+            </div>
+            {filtersActive ? (
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <p className="text-slate-400">
+                  {visibleTeachers.length
+                    ? `${visibleTeachers.length} من ${teachers.length} مدرس`
+                    : "لا توجد نتائج لهذا التصنيف"}
+                </p>
+                <button
+                  type="button"
+                  className="font-semibold text-indigo-600 hover:text-indigo-700"
+                  onClick={() => {
+                    setQuery("");
+                    setGradeFilter("");
+                    setSubjectFilter("");
+                  }}
+                >
+                  مسح التصنيف
+                </button>
+              </div>
+            ) : null}
+          </div>
 
           {loading ? (
             <div className="flex justify-center py-16">
@@ -154,7 +234,9 @@ export function PrincipalDashboard() {
             </p>
           ) : visibleTeachers.length === 0 ? (
             <p className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-400">
-              لا يوجد مدرس يطابق «{query.trim()}». جرّب الاسم دون همزات أو تاء مربوطة.
+              {query.trim()
+                ? `لا يوجد مدرس يطابق «${query.trim()}» مع التصنيف الحالي.`
+                : "لا يوجد مدرس في هذا الصف أو هذه المادة."}
             </p>
           ) : (
             <div className="mt-4 grid gap-3">

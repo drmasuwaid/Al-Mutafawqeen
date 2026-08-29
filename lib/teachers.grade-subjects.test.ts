@@ -5,6 +5,7 @@ import {
   assignmentsFromSelections,
   pickerGradeSectionsFromAssignments,
   teacherCanPublishAssignment,
+  teacherMatchesStaffFilters,
 } from "./teachers";
 
 const math = { id: "math", nameAr: "الرياضيات" };
@@ -104,4 +105,23 @@ test("teacher cannot publish a subject into another grade's sections", () => {
   assert.equal(teacherCanPublishAssignment(user, ["m1-a"], "phy"), false);
   assert.equal(teacherCanPublishAssignment(user, ["s4-b"], "math"), false);
   assert.equal(teacherCanPublishAssignment({ role: "admin" }, ["m1-a"], "phy"), true);
+});
+
+test("staff filters match grade and subject on the same assignment", () => {
+  const teacher = {
+    subjectsGrades: assignmentsFromGradeSections(
+      [
+        { gradeId: "m1", sectionIds: ["e"], subjectIds: ["ar"] },
+        { gradeId: "m2", sectionIds: ["a"], subjectIds: ["math"] },
+      ],
+      [math, arabic]
+    ),
+  };
+  assert.equal(teacherMatchesStaffFilters(teacher, {}), true);
+  assert.equal(teacherMatchesStaffFilters(teacher, { gradeId: "m1" }), true);
+  assert.equal(teacherMatchesStaffFilters(teacher, { gradeId: "s4" }), false);
+  assert.equal(teacherMatchesStaffFilters(teacher, { subjectId: "math" }), true);
+  assert.equal(teacherMatchesStaffFilters(teacher, { subjectId: "phy" }), false);
+  assert.equal(teacherMatchesStaffFilters(teacher, { gradeId: "m1", subjectId: "ar" }), true);
+  assert.equal(teacherMatchesStaffFilters(teacher, { gradeId: "m1", subjectId: "math" }), false);
 });

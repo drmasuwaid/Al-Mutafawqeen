@@ -171,6 +171,21 @@ export function groupAssignmentsByGrade(rows: SubjectGrade[] | undefined): Grade
   });
 }
 
+export function teacherMatchesStaffFilters(
+  teacher: { subjectsGrades?: SubjectGrade[] },
+  filters: { gradeId?: string; subjectId?: string }
+) {
+  const gradeId = filters.gradeId?.trim() ?? "";
+  const subjectId = filters.subjectId?.trim() ?? "";
+  if (!gradeId && !subjectId) return true;
+  const rows = teacher.subjectsGrades ?? [];
+  return rows.some((row) => {
+    if (gradeId && row.gradeId !== gradeId) return false;
+    if (subjectId && row.subjectId !== subjectId) return false;
+    return true;
+  });
+}
+
 export function compareArabicNames(a: string, b: string) {
   return a.localeCompare(b, "ar", { sensitivity: "base", numeric: true });
 }
