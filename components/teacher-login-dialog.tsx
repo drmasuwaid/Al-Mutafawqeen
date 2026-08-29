@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, Loader2, Lock, X } from "lucide-react";
+import { Loader2, Lock, X } from "lucide-react";
 import { toast } from "sonner";
+import { PasswordInput } from "@/components/password-input";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,6 @@ export function TeacherLoginDialog({
   const { signIn } = useAuth();
   const [username, setUsername] = useState("ahmed");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function submit() {
@@ -85,28 +85,13 @@ export function TeacherLoginDialog({
 
           <label className="block space-y-2 text-right">
             <span className="block text-sm font-medium text-slate-600">كلمة المرور:</span>
-            <div className="relative">
-              <input
-                dir="rtl"
-                className="field-input rtl-field w-full pe-11"
-                type={showPassword ? "text" : "password"}
-                placeholder="أدخل كلمة المرور"
-                value={password}
-                autoComplete="current-password"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-              <button
-                type="button"
-                className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                onClick={() => setShowPassword((value) => !value)}
-                aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-              >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
-            </div>
+            <PasswordInput
+              key={open ? "open" : "closed"}
+              placeholder="أدخل كلمة المرور"
+              value={password}
+              autoComplete="current-password"
+              onChange={setPassword}
+            />
           </label>
 
           <div className="flex items-center gap-3 pt-2">

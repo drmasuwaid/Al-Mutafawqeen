@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, ChevronRight, Eye, EyeOff, Loader2, Lock, Presentation, X } from "lucide-react";
+import { Building2, ChevronRight, Loader2, Lock, Presentation, X } from "lucide-react";
 import { toast } from "sonner";
+import { PasswordInput } from "@/components/password-input";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,6 @@ export function StaffAccessDialog({
   const [teacherId, setTeacherId] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
 
@@ -38,7 +38,6 @@ export function StaffAccessDialog({
       setTeacherId("");
       setUsername("");
       setPassword("");
-      setShowPassword(false);
       return;
     }
     setLoadingTeachers(true);
@@ -146,13 +145,12 @@ export function StaffAccessDialog({
           <>
             <Header icon={<Building2 className="size-5" />} title="تسجيل دخول مدير المدرسة" subtitle="لوحة إدارة الكادر التدريسي" />
             <CredentialForm
+              key={`principal-${open}`}
               username={username}
               password={password}
-              showPassword={showPassword}
               busy={busy}
               onUsername={setUsername}
               onPassword={setPassword}
-              onTogglePassword={() => setShowPassword((value) => !value)}
               onSubmit={() => void submitPrincipal()}
               onCancel={() => onOpenChange(false)}
             />
@@ -180,13 +178,12 @@ export function StaffAccessDialog({
             </div>
             {selectedTeacher ? (
               <CredentialForm
+                key={`teacher-${teacherId}`}
                 username={username}
                 password={password}
-                showPassword={showPassword}
                 busy={busy}
                 onUsername={setUsername}
                 onPassword={setPassword}
-                onTogglePassword={() => setShowPassword((value) => !value)}
                 onSubmit={() => void submitTeacher()}
                 onCancel={() => onOpenChange(false)}
               />
@@ -253,21 +250,17 @@ function RoleChoice({
 function CredentialForm({
   username,
   password,
-  showPassword,
   busy,
   onUsername,
   onPassword,
-  onTogglePassword,
   onSubmit,
   onCancel,
 }: {
   username: string;
   password: string;
-  showPassword: boolean;
   busy: boolean;
   onUsername: (value: string) => void;
   onPassword: (value: string) => void;
-  onTogglePassword: () => void;
   onSubmit: () => void;
   onCancel: () => void;
 }) {
@@ -295,28 +288,12 @@ function CredentialForm({
       </label>
       <label className="block space-y-2 text-right">
         <span className="block text-sm font-medium text-slate-600">كلمة المرور:</span>
-        <div className="relative">
-          <input
-            dir="rtl"
-            className="field-input rtl-field w-full pe-11"
-            type={showPassword ? "text" : "password"}
-            placeholder="أدخل كلمة المرور"
-            value={password}
-            autoComplete="current-password"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            onChange={(event) => onPassword(event.target.value)}
-          />
-          <button
-            type="button"
-            className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            onClick={onTogglePassword}
-            aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-          >
-            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          </button>
-        </div>
+        <PasswordInput
+          placeholder="أدخل كلمة المرور"
+          value={password}
+          autoComplete="current-password"
+          onChange={onPassword}
+        />
       </label>
       <div className="flex items-center gap-3 pt-2">
         <button

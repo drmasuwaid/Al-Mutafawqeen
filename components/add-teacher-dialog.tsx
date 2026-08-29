@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Pencil, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { MultiAddPicker, type PickerOption } from "@/components/multi-add-picker";
+import { PasswordInput } from "@/components/password-input";
 import {
   Dialog,
   DialogContent,
@@ -208,13 +209,12 @@ export function TeacherFormDialog({
           <span className="text-sm font-medium text-slate-600">
             {isEdit ? "كلمة المرور الجديدة (اختياري)" : "كلمة المرور الأولية"}
           </span>
-          <input
-            className="field-input w-full"
-            type="password"
+          <PasswordInput
+            key={open ? (teacher?.id ?? "new") : "closed"}
             placeholder={isEdit ? "اتركها فارغة للإبقاء على الحالية" : "6 أحرف على الأقل"}
             value={password}
             autoComplete="new-password"
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={setPassword}
           />
         </label>
 
