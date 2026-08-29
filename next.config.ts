@@ -11,11 +11,21 @@ const nextConfig: NextConfig = {
     ];
     return [
       {
-        source: "/:path*",
+        // Keep clickjacking protection on app pages, but allow same-origin
+        // PDF preview iframes to load /api/attachments.
+        source: "/((?!api/attachments).*)",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
+        ],
+      },
+      {
+        source: "/api/attachments",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
         ],
       },
       { source: "/", headers: noStore },

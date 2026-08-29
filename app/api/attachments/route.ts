@@ -42,13 +42,20 @@ export async function GET(request: Request) {
     const attachment = Array.isArray(data.attachments)
       ? data.attachments.find((item: { storagePath?: string }) => item.storagePath === storagePath)
       : null;
-    const type = attachment?.type || "application/octet-stream";
     const name = attachment?.name || storagePath.split("/").pop() || "file";
+    const storedType = String(attachment?.type || "");
+    const looksPdf =
+      storedType === "application/pdf" ||
+      name.toLowerCase().endsWith(".pdf") ||
+      storagePath.toLowerCase().endsWith(".pdf");
+    const type = looksPdf ? "application/pdf" : storedType || "application/octet-stream";
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": type,
         "Content-Disposition": `${download ? "attachment" : "inline"}; filename*=UTF-8''${encodeURIComponent(name)}`,
         "Cache-Control": "private, max-age=3600",
+        "X-Frame-Options": "SAMEORIGIN",
+        "Content-Security-Policy": "frame-ancestors 'self'",
       },
     });
   } catch {

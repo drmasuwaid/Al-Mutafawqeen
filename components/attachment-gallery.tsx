@@ -1,14 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, Download, Eye, FileText, X } from "lucide-react";
-import { attachmentFrameClass, attachmentUrl } from "@/lib/attachment-url";
+import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Download, Eye, FileText, Loader2, X } from "lucide-react";
+import { attachmentFrameClass, attachmentUrl, isPdfAttachment } from "@/lib/attachment-url";
 import type { Attachment } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-function isPdf(file: Attachment) {
-  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-}
 
 export function AttachmentGallery({ attachments }: { attachments: Attachment[] }) {
   const images = attachments.filter((file) => file.type.startsWith("image/"));
@@ -52,7 +48,7 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
         <div className="space-y-2">
           <p className="text-xs font-semibold text-slate-500">الملفات ({docs.length}):</p>
           {docs.map((file, index) => {
-            const previewable = isPdf(file);
+            const previewable = isPdfAttachment(file);
             return (
               <div
                 key={`${file.name}-${index}`}
@@ -112,14 +108,81 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
           onClose={() => setPdf(null)}
           downloadHref={attachmentUrl(pdf, { download: true })}
         >
-          <iframe
-            title={pdf.name}
-            src={attachmentUrl(pdf)}
-            className={cn("h-[70vh] w-full rounded-xl bg-white", attachmentFrameClass())}
-          />
+          <PdfPreview file={pdf} />
         </Lightbox>
       ) : null}
     </div>
+  );
+}
+
+function PdfPreview({ file }: { file: Attachment }) {
+  const href = attachmentUrl(file);
+  const [src, setSrc] = useState<string | null>(file.dataUrl?.startsWith("data:application/pdf") ? file.dataUrl : null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (file.dataUrl?.startsWith("data:application/pdf")) {
+      setSrc(file.dataUrl);
+      setError(null);
+      return;
+    }
+
+    let objectUrl = "";
+    let cancelled = false;
+    setSrc(null);
+    setError(null);
+
+    fetch(href, { credentials: "same-origin" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("missing");
+        const blob = new Blob([await res.arrayBuffer()], { type: "application/pdf" });
+        objectUrl = URL.createObjectURL(blob);
+        if (cancelled) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+        setSrc(objectUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setError("تعذر عرض ملف PDF. يمكنك تحميله من الزر أعلاه.");
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [file.dataUrl, href]);
+
+  if (error) {
+    return (
+      <div className="flex h-[70vh] w-full flex-col items-center justify-center gap-3 rounded-xl bg-white px-6 text-center text-slate-600">
+        <FileText className="size-10 text-slate-300" />
+        <p className="text-sm font-medium">{error}</p>
+        <a
+          href={attachmentUrl(file, { download: true })}
+          download={file.name}
+          className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700"
+        >
+          تحميل الملف
+        </a>
+      </div>
+    );
+  }
+
+  if (!src) {
+    return (
+      <div className="flex h-[70vh] w-full items-center justify-center rounded-xl bg-white text-slate-500">
+        <Loader2 className="size-7 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <iframe
+      title={file.name}
+      src={src}
+      className={cn("h-[70vh] w-full rounded-xl bg-white", attachmentFrameClass())}
+    />
   );
 }
 

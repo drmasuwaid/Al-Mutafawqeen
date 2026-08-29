@@ -1,5 +1,9 @@
 import type { Attachment } from "@/lib/types";
 
+export function isPdfAttachment(file: Pick<Attachment, "name" | "type">) {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
 export function attachmentUrl(file: Attachment, options?: { download?: boolean }) {
   if (file.dataUrl) return file.dataUrl;
   if (!file.storagePath) return "";
