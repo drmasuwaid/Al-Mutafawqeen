@@ -218,19 +218,19 @@ export function TeacherFormDialog({
           />
         </label>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-row flex-nowrap items-center gap-2">
           <button
             type="button"
             onClick={() => void save()}
             disabled={busy}
-            className="flex h-12 flex-1 items-center justify-center rounded-xl bg-[#3b82f6] font-bold text-white disabled:opacity-60"
+            className="flex h-12 min-w-0 flex-1 items-center justify-center rounded-xl bg-[#3b82f6] text-[15px] font-bold text-white disabled:opacity-60"
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : isEdit ? "حفظ التعديلات" : "حفظ المدرس"}
           </button>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="h-12 rounded-xl bg-slate-100 px-5 font-semibold text-slate-600"
+            className="h-9 shrink-0 rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-600"
           >
             إلغاء
           </button>
