@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GraduationCap, Loader2, LogOut, Plus, Settings } from "lucide-react";
+import { GraduationCap, Loader2, Plus, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { AccountDialog } from "@/components/account-dialog";
@@ -96,19 +96,11 @@ export function TeacherDashboard({
                 <h2 className="truncate text-xl font-extrabold sm:text-2xl">{profile.displayNameAr}</h2>
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
-              <button
-                type="button"
-                onClick={() => void signOut()}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-red-500 px-3 text-sm font-bold text-white hover:bg-red-600"
-              >
-                <LogOut className="size-4" />
-                خروج
-              </button>
+            <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:justify-end">
               <button
                 type="button"
                 onClick={() => setAccountOpen(true)}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-400/40 px-3 text-sm font-bold hover:bg-blue-400/55"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-400/40 px-4 text-sm font-bold hover:bg-blue-400/55"
               >
                 <Settings className="size-4" />
                 تغيير معلومات الحساب
