@@ -14,6 +14,7 @@ type AuthContextValue = {
   ) => Promise<void>;
   enterStudent: (gradeId: string, sectionId: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<Profile | null>;
   setProfile: (profile: Profile | null) => void;
 };
 
@@ -100,9 +101,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    const res = await fetch("/api/auth/me", { cache: "no-store" });
+    if (res.status === 401) {
+      clearTeacherId();
+      setProfile(null);
+      return null;
+    }
+    const data = (await res.json()) as { profile?: Profile | null };
+    const next = data.profile ?? null;
+    setProfile(next);
+    return next;
+  }, []);
+
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible") void refreshProfile();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refreshProfile]);
+
   const value = useMemo(
-    () => ({ profile, loading, signIn, enterStudent, signOut, setProfile }),
-    [profile, loading, signIn, enterStudent, signOut]
+    () => ({ profile, loading, signIn, enterStudent, signOut, refreshProfile, setProfile }),
+    [profile, loading, signIn, enterStudent, signOut, refreshProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

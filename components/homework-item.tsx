@@ -21,7 +21,7 @@ export function HomeworkItem({
   onDelete?: (item: Homework) => void;
 }) {
   const classTags = groupedClassBadgeLabels(item.classIds.length ? item.classIds : [item.classId]);
-  const ownerId = (item.createdBy || "").trim();
+  const ownerId = (item.createdBy || item.teacherId || "").trim();
   const sessionId = (currentUserId || "").trim();
   const canManage = Boolean(sessionId && ownerId && ownerId === sessionId);
   const publishedAt = formatPublishedAt(item.createdAt);

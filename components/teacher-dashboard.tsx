@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { classById } from "@/lib/catalog";
 import { teacherGreetingAr } from "@/lib/teacher-gender";
 import { groupAssignmentsByGrade, isHomeworkOwner } from "@/lib/teachers";
+import type { SyncState } from "@/hooks/use-homework-live";
 import type { Homework, LiveSnapshot, SubjectGrade } from "@/lib/types";
 
 export function TeacherDashboard({
@@ -21,13 +22,15 @@ export function TeacherDashboard({
   error,
   onRetry,
   onPublished,
+  syncState,
 }: {
   snapshot: LiveSnapshot | null;
   error: string | null;
   onRetry: () => void;
   onPublished: () => void;
+  syncState?: SyncState;
 }) {
-  const { profile, signOut, setProfile } = useAuth();
+  const { profile, signOut, setProfile, refreshProfile } = useAuth();
   const [publishOpen, setPublishOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [editing, setEditing] = useState<Homework | null>(null);
@@ -72,6 +75,7 @@ export function TeacherDashboard({
       }
       setDeleting(null);
       toast.success("تم حذف الواجب.");
+      onPublished();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر حذف الواجب");
     } finally {
@@ -82,7 +86,7 @@ export function TeacherDashboard({
   return (
     <div className="flex min-h-full flex-1 flex-col overflow-x-hidden bg-[#f4f6f8]">
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-3 pb-10 sm:px-6">
-        <AppHeader onBack={() => void signOut()} />
+        <AppHeader onBack={() => void signOut()} syncState={syncState} />
 
         <section className="overflow-hidden rounded-[24px] bg-[#3b82f6] p-4 text-white shadow-lg shadow-blue-500/20 sm:rounded-[28px] sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -137,6 +141,7 @@ export function TeacherDashboard({
             type="button"
             onClick={() => {
               setEditing(null);
+              void refreshProfile();
               setPublishOpen(true);
             }}
             className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#3b82f6] px-5 text-sm font-extrabold text-white shadow-lg shadow-blue-500/25 hover:bg-[#2563eb] sm:w-auto"
@@ -181,6 +186,7 @@ export function TeacherDashboard({
                     currentUserId={teacher.teacherId || teacher.uid}
                     onEdit={(row) => {
                       if (!assertOwnsHomework(row, "edit")) return;
+                      void refreshProfile();
                       setEditing(row);
                       setPublishOpen(true);
                     }}

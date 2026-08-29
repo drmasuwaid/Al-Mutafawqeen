@@ -12,15 +12,13 @@ const tajawal = Tajawal({
 export const metadata: Metadata = {
   title: "منصة الواجبات المدرسية | Homework App",
   description:
-    "منصة الواجبات المدرسية لمدرسة المتفوقين مع تزامن لحظي ودعم العمل دون إنترنت.",
+    "منصة الواجبات المدرسية لمدرسة المتفوقين مع تزامن لحظي للواجبات والمرفقات.",
   manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireProfile } from "@/lib/session";
 import { deleteHomework, updateHomework } from "@/lib/homework";
-import { syncHomeworkAttachments } from "@/lib/files";
+import { assertHomeworkFile, sanitizeClientAttachments, syncHomeworkAttachments } from "@/lib/files";
 import { adminDb } from "@/lib/firebase-admin";
 import { isHomeworkOwner } from "@/lib/teachers";
-import type { Attachment } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -35,9 +34,10 @@ export async function PATCH(request: Request, { params }: Params) {
     const classIds = Array.isArray(payload.classIds)
       ? payload.classIds.map(String).filter(Boolean)
       : undefined;
-    const keep = Array.isArray(payload.attachments)
-      ? (payload.attachments as Attachment[])
-      : [];
+    const keep = sanitizeClientAttachments(
+      Array.isArray(payload.attachments) ? payload.attachments : []
+    );
+    files.forEach(assertHomeworkFile);
     const current = await adminDb().doc(`homework/${id}`).get();
     if (!current.exists) throw new Error("Homework not found.");
     const data = current.data() ?? {};

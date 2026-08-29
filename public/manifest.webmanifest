@@ -1,7 +1,7 @@
 {
   "name": "منصة الواجبات المدرسية",
   "short_name": "الواجبات",
-  "description": "تزامن لحظي ودعم غير متصل للواجبات المدرسية",
+  "description": "منصة الواجبات المدرسية لمدرسة المتفوقين",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f4f6f8",

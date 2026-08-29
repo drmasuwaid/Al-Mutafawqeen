@@ -7,17 +7,20 @@ import { EmptyHomework, HomeworkItem } from "@/components/homework-item";
 import { StudentLoginDialog } from "@/components/student-login-dialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { classById } from "@/lib/catalog";
+import type { SyncState } from "@/hooks/use-homework-live";
+import { classById, parseClassId } from "@/lib/catalog";
 import type { LiveSnapshot } from "@/lib/types";
 
 export function StudentBoard({
   snapshot,
   error,
   onRetry,
+  syncState,
 }: {
   snapshot: LiveSnapshot | null;
   error: string | null;
   onRetry: () => void;
+  syncState?: SyncState;
 }) {
   const { profile, signOut } = useAuth();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -26,7 +29,7 @@ export function StudentBoard({
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[#f4f6f8]">
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-3 pb-10 sm:px-6">
-        <AppHeader onBack={() => void signOut()} />
+        <AppHeader onBack={() => void signOut()} syncState={syncState} />
 
         <section className="soft-card flex flex-1 flex-col p-4 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -90,7 +93,12 @@ export function StudentBoard({
           </div>
         </section>
       </div>
-      <StudentLoginDialog open={pickerOpen} onOpenChange={setPickerOpen} />
+      <StudentLoginDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        initialGradeId={profile?.classId ? parseClassId(profile.classId).gradeId : ""}
+        initialSectionId={profile?.classId ? parseClassId(profile.classId).sectionId : ""}
+      />
     </div>
   );
 }

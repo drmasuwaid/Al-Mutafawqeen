@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireProfile } from "@/lib/session";
-import { createHomework, loadLiveSnapshot } from "@/lib/homework";
-import { saveHomeworkFiles } from "@/lib/files";
+import { createHomework, deleteHomework, loadLiveSnapshot } from "@/lib/homework";
+import { assertHomeworkFile, sanitizeClientAttachments, saveHomeworkFiles } from "@/lib/files";
 import { adminDb } from "@/lib/firebase-admin";
-import type { Attachment } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,9 +51,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "أكمل حقول الواجب قبل النشر." }, { status: 400 });
     }
     const dueAt = payload.dueAt ? new Date(String(payload.dueAt)).toISOString() : null;
-    const existing = Array.isArray(payload.attachments)
-      ? (payload.attachments as Attachment[])
-      : [];
+    const existing = sanitizeClientAttachments(
+      Array.isArray(payload.attachments) ? payload.attachments : []
+    );
+    files.forEach(assertHomeworkFile);
     const id = await createHomework(user, {
       title: String(payload.title || titleAr).trim(),
       titleAr,
@@ -67,11 +67,16 @@ export async function POST(request: Request) {
       attachments: existing,
       status: "published",
     });
-    if (files.length) {
-      const saved = await saveHomeworkFiles(id, files);
-      await adminDb()
-        .doc(`homework/${id}`)
-        .update({ attachments: [...existing, ...saved] });
+    try {
+      if (files.length) {
+        const saved = await saveHomeworkFiles(id, files);
+        await adminDb()
+          .doc(`homework/${id}`)
+          .update({ attachments: [...existing, ...saved] });
+      }
+    } catch (error) {
+      await deleteHomework(user, id).catch(() => undefined);
+      throw error;
     }
     return NextResponse.json({ id });
   } catch (error) {

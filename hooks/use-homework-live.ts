@@ -27,6 +27,10 @@ export function useHomeworkLive(profile: Profile | null) {
   const snapshotRef = useRef<LiveSnapshot | null>(null);
 
   useEffect(() => {
+    snapshotRef.current = null;
+    setSnapshot(null);
+    setError(null);
+    setState("reconnecting");
     if (!profile) return;
     try {
       const cached = localStorage.getItem(cacheKey(profile.uid));
@@ -38,7 +42,7 @@ export function useHomeworkLive(profile: Profile | null) {
     } catch {
       /* ignore */
     }
-  }, [profile]);
+  }, [profile?.uid]);
 
   useEffect(() => {
     if (!enabled || !profile) return;
@@ -60,6 +64,11 @@ export function useHomeworkLive(profile: Profile | null) {
 
     const loadOnce = async (force = false) => {
       const res = await fetch("/api/homework", { cache: "no-store" });
+      if (res.status === 401) {
+        snapshotRef.current = null;
+        setSnapshot(null);
+        throw new Error("انتهت الجلسة. أعد تسجيل الدخول.");
+      }
       if (!res.ok) throw new Error("Could not load homework");
       const data = (await res.json()) as LiveSnapshot;
       if (!cancelled) {

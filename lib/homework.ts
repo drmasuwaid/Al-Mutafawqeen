@@ -260,7 +260,10 @@ function assertTeacherCanUseClasses(user: Profile, classIds: string[], subjectId
   if (user.role === "admin") return;
   if (!classIds.length) throw new Error("اختر شعبة واحدة على الأقل.");
   const allowed = teacherClassIds(user);
-  if (allowed.length && classIds.some((id) => !allowed.includes(id))) {
+  if (!allowed.length) {
+    throw new Error("لم تُسند إليك شعب بعد. راجع مدير المدرسة.");
+  }
+  if (classIds.some((id) => !allowed.includes(id))) {
     throw new Error("يمكنك النشر للشعب المسندة إليك فقط.");
   }
   if (subjectId && !teacherCanPublishAssignment(user, classIds, subjectId)) {

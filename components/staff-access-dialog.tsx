@@ -31,6 +31,7 @@ export function StaffAccessDialog({
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
+  const [teachersError, setTeachersError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -41,12 +42,17 @@ export function StaffAccessDialog({
       return;
     }
     setLoadingTeachers(true);
+    setTeachersError(null);
     fetch("/api/teachers")
       .then(async (res) => {
-        const data = (await res.json()) as { teachers?: TeacherSummary[] };
+        const data = (await res.json()) as { teachers?: TeacherSummary[]; error?: string };
+        if (!res.ok) throw new Error(data.error || "تعذر تحميل المدرسين");
         setTeachers(data.teachers ?? []);
       })
-      .catch(() => setTeachers([]))
+      .catch(() => {
+        setTeachers([]);
+        setTeachersError("تعذر تحميل قائمة المدرسين. أعد المحاولة.");
+      })
       .finally(() => setLoadingTeachers(false));
   }, [open]);
 
@@ -172,7 +178,10 @@ export function StaffAccessDialog({
                   setPassword("");
                 }}
               />
-              {!loadingTeachers && teachers.length === 0 ? (
+              {!loadingTeachers && teachersError ? (
+                <p className="text-xs text-red-600">{teachersError}</p>
+              ) : null}
+              {!loadingTeachers && !teachersError && teachers.length === 0 ? (
                 <p className="text-xs text-slate-400">لا يوجد مدرسون مسجلون بعد. يضيفهم مدير المدرسة من بوابته.</p>
               ) : null}
             </div>

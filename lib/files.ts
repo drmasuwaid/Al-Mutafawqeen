@@ -4,9 +4,48 @@ import { adminBucket } from "@/lib/firebase-admin";
 import type { Attachment } from "@/lib/types";
 
 const LEGACY_ROOT = path.join(process.cwd(), "data", "attachments");
+export const MAX_HOMEWORK_FILE_BYTES = 8 * 1024 * 1024;
+
+const ALLOWED_FILE_TYPES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+export function assertHomeworkFile(file: File) {
+  if (file.size > MAX_HOMEWORK_FILE_BYTES) {
+    throw new Error(`الملف ${file.name} أكبر من 8 ميجابايت`);
+  }
+  const name = file.name.toLowerCase();
+  const typed =
+    file.type.startsWith("image/") ||
+    ALLOWED_FILE_TYPES.has(file.type);
+  const named = /\.(pdf|doc|docx|png|jpe?g|gif|webp|heic|heif)$/i.test(name);
+  if (!typed && !named) {
+    throw new Error(`نوع الملف ${file.name} غير مسموح. ارفع صورة أو PDF أو مستنداً.`);
+  }
+}
 
 function safeName(name: string) {
   return name.replace(/[^\w.\u0600-\u06FF-]+/g, "_").slice(0, 80) || "file";
+}
+
+export function sanitizeClientAttachments(items: Attachment[] | undefined): Attachment[] {
+  if (!Array.isArray(items)) return [];
+  return items.flatMap((item) => {
+    const name = String(item?.name || "file").slice(0, 180);
+    const type = String(item?.type || "application/octet-stream");
+    const size = Number(item?.size) || 0;
+    const storagePath = String(item?.storagePath || "");
+    const dataUrl = String(item?.dataUrl || "");
+    if (storagePath && !storagePath.includes("..") && storagePath.startsWith("homework/")) {
+      return [{ name, type, size, storagePath }];
+    }
+    if (/^data:(image\/[a-z0-9.+-]+|application\/pdf);/i.test(dataUrl)) {
+      return [{ name, type, size, dataUrl }];
+    }
+    return [];
+  });
 }
 
 export function homeworkIdFromStoragePath(storagePath: string) {
@@ -34,6 +73,7 @@ export async function saveHomeworkFiles(
   const bucket = adminBucket();
   const saved: Attachment[] = [];
   for (const file of files) {
+    assertHomeworkFile(file);
     const filename = `${Date.now()}-${safeName(file.name)}`;
     const storagePath = objectPath(homeworkId, filename);
     const buffer = Buffer.from(await file.arrayBuffer());

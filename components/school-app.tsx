@@ -46,7 +46,12 @@ export function SchoolApp() {
 
   if (profile.role === "student") {
     return (
-      <StudentBoard snapshot={live.snapshot} error={live.error} onRetry={live.reload} />
+      <StudentBoard
+        snapshot={live.snapshot}
+        error={live.error}
+        onRetry={live.reload}
+        syncState={live.state}
+      />
     );
   }
 
@@ -60,6 +65,7 @@ export function SchoolApp() {
       error={live.error}
       onRetry={live.reload}
       onPublished={live.reload}
+      syncState={live.state}
     />
   );
 }

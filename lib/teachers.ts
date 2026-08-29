@@ -43,9 +43,10 @@ export function isHomeworkOwner(
   item: { createdBy?: string; teacherId?: string } | null | undefined
 ) {
   const currentId = sessionTeacherId(user);
+  if (!currentId) return false;
   const createdBy = String(item?.createdBy ?? "").trim();
-  if (!currentId || !createdBy) return false;
-  return createdBy === currentId;
+  const teacherId = String(item?.teacherId ?? "").trim();
+  return Boolean(currentId === createdBy || (teacherId && currentId === teacherId));
 }
 
 export function newAssignmentId() {
@@ -245,13 +246,16 @@ export function assignmentsFromGradeSections(
 }
 
 export function teacherCanPublishAssignment(
-  user: { role?: string; subjectsGrades?: SubjectGrade[] } | null | undefined,
+  user: { role?: string; subjectsGrades?: SubjectGrade[]; subjectIds?: string[] } | null | undefined,
   classIds: string[],
   subjectId: string
 ) {
   if (!user || user.role === "admin") return true;
   const rows = user.subjectsGrades ?? [];
-  if (!rows.length) return true;
+  if (!rows.length) {
+    const allowedSubjects = user.subjectIds ?? [];
+    return Boolean(subjectId && allowedSubjects.includes(subjectId));
+  }
   const wantedSubject = String(subjectId ?? "").trim();
   if (!wantedSubject) return false;
   return classIds.every((classId) => {

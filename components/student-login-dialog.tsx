@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GraduationCap, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -16,14 +16,24 @@ import { useAuth } from "@/hooks/use-auth";
 export function StudentLoginDialog({
   open,
   onOpenChange,
+  initialGradeId,
+  initialSectionId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialGradeId?: string;
+  initialSectionId?: string;
 }) {
   const { enterStudent } = useAuth();
   const [gradeId, setGradeId] = useState("");
   const [sectionId, setSectionId] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setGradeId(initialGradeId ?? "");
+    setSectionId(initialSectionId ?? "");
+  }, [open, initialGradeId, initialSectionId]);
 
   async function submit() {
     if (!gradeId || !sectionId) {

@@ -115,12 +115,23 @@ export function AttachmentGallery({ attachments }: { attachments: Attachment[] }
   );
 }
 
+function isIosDevice() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
 function PdfPreview({ file }: { file: Attachment }) {
   const href = attachmentUrl(file);
   const [src, setSrc] = useState<string | null>(file.dataUrl?.startsWith("data:application/pdf") ? file.dataUrl : null);
   const [error, setError] = useState<string | null>(null);
+  const ios = isIosDevice();
 
   useEffect(() => {
+    if (ios && !file.dataUrl) {
+      setSrc(null);
+      setError("ios");
+      return;
+    }
     if (file.dataUrl?.startsWith("data:application/pdf")) {
       setSrc(file.dataUrl);
       setError(null);
@@ -144,7 +155,7 @@ function PdfPreview({ file }: { file: Attachment }) {
         setSrc(objectUrl);
       })
       .catch(() => {
-        if (!cancelled) setError("تعذر عرض ملف PDF. يمكنك تحميله من الزر أعلاه.");
+        if (!cancelled) setError("تعذر عرض ملف PDF.");
       });
 
     return () => {
@@ -157,14 +168,28 @@ function PdfPreview({ file }: { file: Attachment }) {
     return (
       <div className="flex h-[70vh] w-full flex-col items-center justify-center gap-3 rounded-xl bg-white px-6 text-center text-slate-600">
         <FileText className="size-10 text-slate-300" />
-        <p className="text-sm font-medium">{error}</p>
-        <a
-          href={attachmentUrl(file, { download: true })}
-          download={file.name}
-          className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700"
-        >
-          تحميل الملف
-        </a>
+        <p className="text-sm font-medium">
+          {error === "ios"
+            ? "على هذا الجهاز افتح الملف في صفحة جديدة لمعاينته."
+            : "تعذر عرض ملف PDF داخل النافذة."}
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white"
+          >
+            فتح الملف
+          </a>
+          <a
+            href={attachmentUrl(file, { download: true })}
+            download={file.name}
+            className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700"
+          >
+            تحميل الملف
+          </a>
+        </div>
       </div>
     );
   }

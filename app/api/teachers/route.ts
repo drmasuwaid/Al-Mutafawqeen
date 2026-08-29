@@ -15,12 +15,23 @@ import type { TeacherSummary } from "@/lib/types";
 export const runtime = "nodejs";
 
 export async function GET() {
+  const user = await requireProfile();
   const snap = await adminDb().collection("teachers").get();
   const teachers = snap.docs
     .map((doc) => mapTeacherDoc(doc.id, doc.data() as Record<string, unknown>))
     .filter((item): item is TeacherSummary => Boolean(item))
     .sort((a, b) => compareArabicNames(a.displayNameAr, b.displayNameAr));
-  return NextResponse.json({ teachers });
+  if (user && isPrincipal(user)) {
+    return NextResponse.json({ teachers });
+  }
+  return NextResponse.json({
+    teachers: teachers.map((teacher) => ({
+      id: teacher.id,
+      displayNameAr: teacher.displayNameAr,
+      username: "",
+      subjectsGrades: [],
+    })),
+  });
 }
 
 export async function POST(request: Request) {

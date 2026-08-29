@@ -119,7 +119,7 @@ npm run deploy:rules
 
 كل دفع لاحق إلى `main` على GitHub يعيد النشر تلقائياً.
 
-10. افتح `/api/health` — يجب أن ترى `"ok": true` و `"emulator": false`.
+10. افتح `/api/health` — يجب أن ترى `"ok": true`.
 
 ### 4) بذرة الإنتاج (مرة واحدة، آمنة)
 

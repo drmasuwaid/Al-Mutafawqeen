@@ -31,17 +31,21 @@ export function PrincipalDashboard() {
   const [gradeFilter, setGradeFilter] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
   const [subjectOpen, setSubjectOpen] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { subjects: catalog } = useSubjects();
 
   const loadTeachers = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch("/api/teachers");
       const data = (await res.json()) as { teachers?: TeacherSummary[]; error?: string };
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "تعذر تحميل المدرسين");
       setTeachers(data.teachers ?? []);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "تعذر تحميل المدرسين");
+      const message = error instanceof Error ? error.message : "تعذر تحميل المدرسين";
+      setLoadError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -227,6 +231,17 @@ export function PrincipalDashboard() {
           {loading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="size-6 animate-spin text-indigo-500" />
+            </div>
+          ) : loadError ? (
+            <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 px-4 py-6 text-center text-sm text-red-700">
+              <p>تعذر تحميل قائمة المدرسين.</p>
+              <button
+                type="button"
+                className="mt-3 font-semibold text-indigo-700"
+                onClick={() => void loadTeachers()}
+              >
+                إعادة المحاولة
+              </button>
             </div>
           ) : teachers.length === 0 ? (
             <p className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-400">

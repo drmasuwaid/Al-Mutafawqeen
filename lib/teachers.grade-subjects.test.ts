@@ -107,6 +107,18 @@ test("teacher cannot publish a subject into another grade's sections", () => {
   assert.equal(teacherCanPublishAssignment({ role: "admin" }, ["m1-a"], "phy"), true);
 });
 
+test("teacher with no assignments cannot publish anywhere", () => {
+  assert.equal(teacherCanPublishAssignment({ role: "teacher", subjectsGrades: [] }, ["m1-a"], "math"), false);
+  assert.equal(
+    teacherCanPublishAssignment({ role: "teacher", subjectsGrades: [], subjectIds: ["math"] }, ["m1-a"], "math"),
+    true
+  );
+  assert.equal(
+    teacherCanPublishAssignment({ role: "teacher", subjectsGrades: [], subjectIds: ["math"] }, ["m1-a"], "phy"),
+    false
+  );
+});
+
 test("staff filters match grade and subject on the same assignment", () => {
   const teacher = {
     subjectsGrades: assignmentsFromGradeSections(
