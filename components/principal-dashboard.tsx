@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Loader2, Pencil, Plus, Search, Settings, Trash2, UserPlus } from "lucide-react";
+import { Loader2, Pencil, Plus, Search, Settings, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { AccountDialog } from "@/components/account-dialog";
 import { AddSubjectDialog } from "@/components/add-subject-dialog";
 import { TeacherFormDialog } from "@/components/add-teacher-dialog";
 import { AppHeader } from "@/components/app-header";
+import { PrincipalAvatar } from "@/components/principal-avatar";
 import { TeacherAvatar } from "@/components/teacher-avatar";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { useAuth } from "@/hooks/use-auth";
@@ -97,9 +98,7 @@ export function PrincipalDashboard() {
         <section className="overflow-hidden rounded-[24px] bg-[#4f46e5] p-4 text-white shadow-lg shadow-indigo-500/20 sm:rounded-[28px] sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-center gap-3">
-              <span className="flex size-14 items-center justify-center rounded-full bg-white/15 ring-2 ring-white/30 sm:size-16">
-                <Building2 className="size-7" />
-              </span>
+              <PrincipalAvatar className="size-16 ring-2 ring-white/40 sm:size-[4.5rem]" />
               <div className="min-w-0">
                 <p className="text-sm text-indigo-100">أهلاً بك، مدير المدرسة</p>
                 <h2 className="truncate text-xl font-extrabold sm:text-2xl">{profile.displayNameAr}</h2>
