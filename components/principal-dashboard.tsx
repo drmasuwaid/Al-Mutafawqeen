@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Loader2, LogOut, Pencil, Plus, Search, Settings, Trash2, UserPlus } from "lucide-react";
+import { Building2, Loader2, Pencil, Plus, Search, Settings, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { AccountDialog } from "@/components/account-dialog";
 import { AddSubjectDialog } from "@/components/add-subject-dialog";
@@ -105,19 +105,11 @@ export function PrincipalDashboard() {
                 <h2 className="truncate text-xl font-extrabold sm:text-2xl">{profile.displayNameAr}</h2>
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
-              <button
-                type="button"
-                onClick={() => void signOut()}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-red-500 px-3 text-sm font-bold text-white hover:bg-red-600"
-              >
-                <LogOut className="size-4" />
-                خروج
-              </button>
+            <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:justify-end">
               <button
                 type="button"
                 onClick={() => setAccountOpen(true)}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-indigo-400/40 px-3 text-sm font-bold hover:bg-indigo-400/55"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-indigo-400/40 px-4 text-sm font-bold hover:bg-indigo-400/55"
               >
                 <Settings className="size-4" />
                 تغيير معلومات الحساب
@@ -125,7 +117,7 @@ export function PrincipalDashboard() {
               <button
                 type="button"
                 onClick={() => setAddOpen(true)}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-3 text-sm font-bold text-indigo-700 hover:bg-indigo-50"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-indigo-700 hover:bg-indigo-50"
               >
                 <UserPlus className="size-4" />
                 إضافة مدرس جديد
