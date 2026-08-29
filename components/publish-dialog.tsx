@@ -94,6 +94,17 @@ export function PublishDialog({
     setPendingFiles([]);
   }, [open, homework, grades]);
 
+  useEffect(() => {
+    if (!open || !gradeId) return;
+    const stillValid = allowedSubjects.some((item) => item.id === subjectId);
+    if (stillValid) return;
+    if (allowedSubjects.length === 1) {
+      setSubjectId(allowedSubjects[0].id);
+      return;
+    }
+    if (subjectId) setSubjectId("");
+  }, [open, gradeId, allowedSubjects, subjectId]);
+
   function addFiles(fileList: FileList | null) {
     if (!fileList?.length) return;
     const next = [...pendingFiles];
@@ -175,6 +186,7 @@ export function PublishDialog({
               value={gradeId}
               onChange={(event) => {
                 setGradeId(event.target.value);
+                setSubjectId("");
                 setSectionIds([]);
               }}
             >
@@ -196,7 +208,13 @@ export function PublishDialog({
               }}
               disabled={!gradeId}
             >
-              <option value="">-- اختر الصف أولاً --</option>
+              <option value="">
+                {!gradeId
+                  ? "-- اختر الصف أولاً --"
+                  : allowedSubjects.length
+                    ? "-- اختر المادة --"
+                    : "-- لا توجد مادة لهذه المرحلة --"}
+              </option>
               {allowedSubjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
                   {subject.nameAr}
