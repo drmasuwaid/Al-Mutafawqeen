@@ -274,7 +274,16 @@ export function PrincipalDashboard() {
                           ) : (
                             groups.map((group) => (
                               <p key={group.gradeId} className="text-sm leading-6 text-slate-600">
-                                {group.line}
+                                {group.gradeNameAr}
+                                {group.sectionLabelsAr.filter(Boolean).map((label) => (
+                                  <span key={`${group.gradeId}-${label}`}> - {label}</span>
+                                ))}
+                                {group.subjectNamesAr.filter(Boolean).map((name, index) => (
+                                  <span key={`${group.gradeId}-${name}-${index}`}>
+                                    {index === 0 ? " - " : "، "}
+                                    <span className="font-semibold text-indigo-600">{name}</span>
+                                  </span>
+                                ))}
                               </p>
                             ))
                           )}
