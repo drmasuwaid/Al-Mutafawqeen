@@ -3,7 +3,12 @@ const CACHE = "school-homework-v5";
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) =>
-      cache.addAll(["/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"])
+      cache.addAll([
+        "/manifest.webmanifest",
+        "/apple-touch-icon.png",
+        "/icons/icon-192.png",
+        "/icons/icon-512.png",
+      ])
     )
   );
   self.skipWaiting();
