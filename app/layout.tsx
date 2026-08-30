@@ -10,10 +10,23 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "منصة الواجبات المدرسية | Homework App",
+  title: "واجباتي",
+  applicationName: "واجباتي",
   description:
     "منصة الواجبات المدرسية لمدرسة المتفوقين مع تزامن لحظي للواجبات والمرفقات.",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "واجباتي",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
