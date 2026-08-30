@@ -30,6 +30,7 @@ const nextConfig: NextConfig = {
       },
       { source: "/", headers: noStore },
       { source: "/sw.js", headers: noStore },
+      { source: "/manifest.webmanifest", headers: noStore },
     ];
   },
 };

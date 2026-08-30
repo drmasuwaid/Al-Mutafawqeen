@@ -1,4 +1,4 @@
-const CACHE = "school-homework-v4";
+const CACHE = "school-homework-v5";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

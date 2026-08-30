@@ -42,6 +42,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${tajawal.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon-precomposed.png" />
+        <meta name="apple-mobile-web-app-title" content="واجباتي" />
+        <meta name="application-name" content="واجباتي" />
+      </head>
       <body className="flex min-h-full flex-col bg-[#f4f6f8] text-slate-800">
         <Providers>{children}</Providers>
       </body>
